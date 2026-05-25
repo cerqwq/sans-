@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢乐斗地主</title>
+    
+    <style>
+        /* ============================================ */
+        /* 全局样式 */
+        /* ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #0a5c2a 0%, #0d4a2a 50%, #082818 100%);
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+        
+        /* ============================================ */
+        /* 顶部信息栏 */
+        /* ============================================ */
+        .top-bar {
+            background: linear-gradient(180deg, rgba(0,0,0,0.4), transparent);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 50px;
+        }
+        
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .top-bar-left .back-btn {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 20px;
+            padding: 5px;
+        }
+        
+        .top-bar-left .game-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffd700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .top-bar-right .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 15px;
+        }
+        
+        .top-bar-right .user-info .coins {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        /* ============================================ */
+        /* 游戏桌面 */
+        /* ============================================ */
+        .game-table {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: radial-gradient(ellipse at center, #1a7a3c 0%, #0d4a2a 50%, #082818 100%);
+        }
+        
+        /* 桌面纹理 */
+        .game-table::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255,255,255,0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        /* ============================================ */
+        /* 底牌区域（屏幕中间上方） */
+        /* ============================================ */
+        .bottom-cards-area {
+            position: absolute;
+            top: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        
+        .bottom-card {
+            width: 55px;
+            height: 78px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.5s;
+        }
+        
+        .bottom-card.revealed {
+            background: white;
+            color: #8b0000;
+            opacity: 1;
+        }
+        
+        .bottom-card.hidden {
+            background: linear-gradient(135deg, #2d5a3d, #1a3a2a);
+            color: transparent;
+            border: 2px solid rgba(255,215,0,0.2);
+        }
+        
+        .bottom-card.revealed.red {
+            color: #d32f2f;
+        }
+        
+        .bottom-card.revealed.black {
+            color: #212121;
+        }
+        
+        /* ============================================ */
+        /* 玩家区域 */
+        /* ============================================ */
+        
+        /* 玩家1（左上角） */
+        .player-top-left {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        /* 玩家2（右上角） */
+        .player-top-right {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+            flex-direction: row-reverse;
+        }
+        
+        /* 玩家头像 */
+        .player-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            position: relative;
+            border: 3px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        
+        .player-avatar.ai {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+        
+        .player-avatar.active-player {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+            animation: avatarPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+            50% { box-shadow: 0 0 30px rgba(255,215,0,0.8); }
+        }
+        
+        .player-avatar.landlord-avatar {
+            border-color: #ffd700;
+        }
+        
+        /* 玩家信息 */
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .player-info .player-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        
+        .player-info .player-role-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            display: inline-block;
+            width: fit-content;
+        }
+        
+        .player-info .player-role-badge.landlord {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .player-info .player-role-badge.farmer {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        /* 对手牌模型（一张牌+数量） */
+        .opponent-cards-model {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .opponent-card-back {
+            width: 35px;
+            height: 50px;
+            background: linear-gradient(135deg, #1a5276, #2e86c1);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .opponent-card-count {
+            font-size: 16px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            min-width: 30px;
+        }
+        
+        /* ============================================ */
+        /* 出牌显示区域（中间） */
+        /* ============================================ */
+        .play-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 6px;
+            z-index: 20;
+            min-height: 90px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .play-area .card {
+            width: 55px;
+            height: 78px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: cardDeal 0.3s ease-out;
+        }
+        
+        .play-area .card .card-rank {
+            font-size: 16px;
+            line-height: 1;
+        }
+        
+        .play-area .card .card-suit {
+            font-size: 12px;
+            line-height: 1;
+        }
+        
+        .play-area .card.red {
+            color: #d32f2f;
+        }
+        
+        .play-area .card.black {
+            color: #212121;
+        }
+        
+        .play-area .card.joker-red {
+            color: #d32f2f;
+            background: linear-gradient(135deg, #fff5f5, #ffe0e0);
+        }
+        
+        .play-area .card.joker-black {
+            color: #212121;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+        }
+        
+        @keyframes cardDeal {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        
+        /* 出牌提示文字 */
+        .play-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            z-index: 5;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        /* ============================================ */
+        /* 我的区域（底部） */
+        /* ============================================ */
+        .my-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 30;
+            padding-bottom: 10px;
+        }
+        
+        /* 我的信息栏 */
+        .my-info-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.5), transparent);
+        }
+        
+        .my-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        
+        .my-avatar.active-player {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+            animation: avatarPulse 1s ease-in-out infinite;
+        }
+        
+        .my-avatar.landlord-avatar {
+            border-color: #ffd700;
+        }
+        
+        .my-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .my-info .my-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .my-info .my-role-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            display: inline-block;
+            width: fit-content;
+        }
+        
+        .my-info .my-role-badge.landlord {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .my-info .my-role-badge.farmer {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        /* 我的手牌区域 */
+        .my-cards-container {
+            display: flex;
+            justify-content: center;
+            padding: 5px 20px;
+            overflow-x: auto;
+            gap: 3px;
+            min-height: 100px;
+        }
+        
+        .my-cards-container::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .my-cards-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+        
+        /* 我的手牌样式 */
+        .my-card {
+            width: 58px;
+            height: 82px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            border: 2px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .my-card .card-rank {
+            font-size: 16px;
+            line-height: 1;
+        }
+        
+        .my-card .card-suit {
+            font-size: 12px;
+            line-height: 1;
+        }
+        
+        .my-card.red {
+            color: #d32f2f;
+        }
+        
+        .my-card.black {
+            color: #212121;
+        }
+        
+        .my-card.joker-red {
+            color: #d32f2f;
+            background: linear-gradient(135deg, #fff5f5, #ffe0e0);
+        }
+        
+        .my-card.joker-black {
+            color: #212121;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+        }
+        
+        .my-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        
+        .my-card.selected {
+            transform: translateY(-22px);
+            box-shadow: 0 12px 35px rgba(255,215,0,0.4);
+            border-color: #ffd700;
+        }
+        
+        /* ============================================ */
+        /* 操作按钮 */
+        /* ============================================ */
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 8px 20px;
+        }
+        
+        .action-btn {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .action-btn.play {
+            background: linear-gradient(135deg, #ff6b35, #ff4444);
+            color: white;
+        }
+        
+        .action-btn.pass {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .action-btn.hint {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        .action-btn.new-game {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .action-btn.call {
+            background: linear-gradient(135deg, #ff6b35, #ff4444);
+            color: white;
+        }
+        
+        .action-btn.no-call {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        /* ============================================ */
+        /* 音乐控制按钮 */
+        /* ============================================ */
+        .music-control {
+            position: fixed;
+            bottom: 120px;
+            right: 15px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .music-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.4);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .music-btn:hover {
+            background: rgba(0,0,0,0.6);
+            transform: scale(1.1);
+        }
+        
+        .music-btn.muted {
+            background: rgba(255,71,87,0.4);
+        }
+        
+        /* ============================================ */
+        /* Toast 消息 */
+        /* ============================================ */
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 999;
+            display: none;
+            animation: toastIn 0.3s ease-out;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .toast.show {
+            display: block;
+        }
+        
+        @keyframes toastIn {
+            0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        
+        .toast.info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .toast.success {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        .toast.error {
+            background: linear-gradient(135deg, #ff6b35, #ff4444);
+            color: white;
+        }
+        
+        .toast.warning {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        /* ============================================ */
+        /* 游戏结束弹窗 */
+        /* ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2a4a, #0d1b2a);
+            border-radius: 24px;
+            padding: 35px;
+            text-align: center;
+            border: 2px solid rgba(255,215,0,0.2);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            max-width: 380px;
+            width: 90%;
+            animation: modalIn 0.3s ease-out;
+        }
+        
+        @keyframes modalIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .modal-title {
+            font-size: 26px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+        
+        .modal-title.win {
+            color: #ffd700;
+        }
+        
+        .modal-title.lose {
+            color: #ff4444;
+        }
+        
+        .modal-subtitle {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .modal-stats {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-stat {
+            text-align: center;
+        }
+        
+        .modal-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffd700;
+        }
+        
+        .modal-stat-label {
+            font-size: 11px;
+            color: #888;
+        }
+        
+        .modal-btn {
+            padding: 12px 35px;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255,215,0,0.3);
+        }
+        
+        /* ============================================ */
+        /* 响应式 */
+        /* ============================================ */
+        @media (max-width: 768px) {
+            .my-card {
+                width: 45px;
+                height: 64px;
+                font-size: 11px;
+            }
+            
+            .my-card .card-rank {
+                font-size: 13px;
+            }
+            
+            .my-card .card-suit {
+                font-size: 10px;
+            }
+            
+            .bottom-card {
+                width: 45px;
+                height: 64px;
+                font-size: 13px;
+            }
+            
+            .play-area .card {
+                width: 45px;
+                height: 64px;
+                font-size: 12px;
+            }
+            
+            .player-avatar {
+                width: 45px;
+                height: 45px;
+                font-size: 22px;
+            }
+            
+            .my-avatar {
+                width: 42px;
+                height: 42px;
+                font-size: 20px;
+            }
+            
+            .action-btn {
+                padding: 8px 20px;
+                font-size: 12px;
+            }
+            
+            .opponent-card-back {
+                width: 28px;
+                height: 40px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .my-card {
+                width: 38px;
+                height: 54px;
+                font-size: 10px;
+            }
+            
+            .my-card .card-rank {
+                font-size: 11px;
+            }
+            
+            .my-card .card-suit {
+                font-size: 8px;
+            }
+            
+            .bottom-card {
+                width: 38px;
+                height: 54px;
+                font-size: 11px;
+            }
+            
+            .player-avatar {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+            }
+            
+            .my-avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- 音频元素 -->
+    <!-- ============================================ -->
+    <audio id="bgMusic" loop>
+        <source src="/static/music/background.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="playCardSound">
+        <source src="/static/music/play_card.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="winSound">
+        <source src="/static/music/win.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="loseSound">
+        <source src="/static/music/lose.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="buttonSound">
+        <source src="/static/music/button.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- ============================================ -->
+    <!-- Toast 消息 -->
+    <!-- ============================================ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ============================================ -->
+    <!-- 顶部信息栏 -->
+    <!-- ============================================ -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/nav" class="back-btn">←</a>
+            <span class="game-title">🃏 斗地主</span>
+        </div>
+        <div class="top-bar-right">
+            <div class="user-info">
+                <span id="usernameDisplay" style="font-size:13px;color:rgba(255,255,255,0.8);">加载中...</span>
+                <span class="coins">💰 <span id="coinsDisplay">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 游戏桌面 -->
+    <!-- ============================================ -->
+    <div class="game-table">
+        
+        <!-- 底牌（屏幕中间上方） -->
+        <div class="bottom-cards-area" id="bottomCardsArea">
+            <div class="bottom-card hidden" id="bottomCard0">?</div>
+            <div class="bottom-card hidden" id="bottomCard1">?</div>
+            <div class="bottom-card hidden" id="bottomCard2">?</div>
+        </div>
+        
+        <!-- 玩家1（左上角） -->
+        <div class="player-top-left" id="player1Area">
+            <div class="player-avatar ai" id="player1Avatar">🤖</div>
+            <div class="player-info">
+                <div class="player-name">电脑玩家1</div>
+                <div class="player-role-badge" id="player1Role"></div>
+                <div class="opponent-cards-model">
+                    <div class="opponent-card-back">🃏</div>
+                    <span class="opponent-card-count" id="player1CardCount">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 玩家2（右上角） -->
+        <div class="player-top-right" id="player2Area">
+            <div class="player-avatar ai" id="player2Avatar">🤖</div>
+            <div class="player-info" style="text-align:right;">
+                <div class="player-name">电脑玩家2</div>
+                <div class="player-role-badge" id="player2Role" style="margin-left:auto;"></div>
+                <div class="opponent-cards-model" style="justify-content:flex-end;">
+                    <span class="opponent-card-count" id="player2CardCount">0</span>
+                    <div class="opponent-card-back">🃏</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 出牌显示区域（中间） -->
+        <div class="play-area" id="playArea"></div>
+        <div class="play-hint" id="playHint">点击「新游戏」开始</div>
+        
+        <!-- 我的区域（底部） -->
+        <div class="my-area">
+            
+            <!-- 我的信息栏 -->
+            <div class="my-info-bar">
+                <div class="my-avatar" id="myAvatar">😊</div>
+                <div class="my-info">
+                    <div class="my-name" id="myNameTag">我</div>
+                    <div class="my-role-badge" id="myRole"></div>
+                </div>
+            </div>
+            
+            <!-- 我的手牌 -->
+            <div class="my-cards-container" id="myCards"></div>
+            
+            <!-- 操作按钮 -->
+            <div class="action-bar" id="actionBar">
+                <button class="action-btn play" id="playBtn" onclick="playCards()" disabled>出牌</button>
+                <button class="action-btn pass" id="passBtn" onclick="passTurn()" disabled>不出</button>
+                <button class="action-btn hint" id="hintBtn" onclick="getHint()" disabled>提示</button>
+                <button class="action-btn new-game" id="newGameBtn" onclick="startNewGame()">新游戏</button>
+            </div>
+            
+            <!-- 叫地主按钮 -->
+            <div class="action-bar" id="callBar" style="display:none;">
+                <button class="action-btn call" id="callBtn" onclick="callLandlord(1)">叫地主</button>
+                <button class="action-btn no-call" id="noCallBtn" onclick="callLandlord(0)">不叫</button>
+            </div>
+            
+        </div>
+        
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 音乐控制按钮 -->
+    <!-- ============================================ -->
+    <div class="music-control">
+        <button class="music-btn" id="musicToggleBtn" onclick="toggleMusic()" title="背景音乐">🎵</button>
+        <button class="music-btn" id="soundToggleBtn" onclick="toggleSound()" title="音效">🔊</button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 游戏结束弹窗 -->
+    <!-- ============================================ -->
+    <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">🎉 恭喜胜利！</div>
+            <div class="modal-subtitle" id="modalSubtitle">你赢得了这场比赛</div>
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modalCoins">+100</div>
+                    <div class="modal-stat-label">金币</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modalTotalGames">0</div>
+                    <div class="modal-stat-label">总场数</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modalWinRate">0%</div>
+                    <div class="modal-stat-label">胜率</div>
+                </div>
+            </div>
+            <button class="modal-btn" onclick="closeModal()">再来一局</button>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JavaScript 逻辑 -->
+    <!-- ============================================ -->
+    <script>
+        // ============================================
+        // 音频控制
+        // ============================================
+        let isMusicPlaying = false;
+        let isSoundEnabled = true;
+        
+        function getAudio(id) { return document.getElementById(id); }
+        
+        function playBackgroundMusic() {
+            const music = getAudio('bgMusic');
+            if (music && !isMusicPlaying) {
+                music.volume = 0.3;
+                music.play().catch(e => {});
+                isMusicPlaying = true;
+                document.getElementById('musicToggleBtn').textContent = '🎵';
+            }
+        }
+        
+        function stopBackgroundMusic() {
+            const music = getAudio('bgMusic');
+            if (music) {
+                music.pause();
+                music.currentTime = 0;
+                isMusicPlaying = false;
+                document.getElementById('musicToggleBtn').textContent = '🔇';
+            }
+        }
+        
+        function toggleMusic() {
+            isMusicPlaying ? stopBackgroundMusic() : playBackgroundMusic();
+        }
+        
+        function toggleSound() {
+            isSoundEnabled = !isSoundEnabled;
+            const btn = document.getElementById('soundToggleBtn');
+            btn.textContent = isSoundEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('muted', !isSoundEnabled);
+        }
+        
+        function playSound(soundId) {
+            if (!isSoundEnabled) return;
+            const sound = getAudio(soundId);
+            if (sound) {
+                sound.currentTime = 0;
+                sound.volume = 0.5;
+                sound.play().catch(e => {});
+            }
+        }
+        
+        function playCardSound() { playSound('playCardSound'); }
+        function playWinSound() { playSound('winSound'); }
+        function playLoseSound() { playSound('loseSound'); }
+        function playButtonSound() { playSound('buttonSound'); }
+        
+        // ============================================
+        // 常量定义
+        // ============================================
+        const SUITS = ['♠', '♥', '♣', '♦'];
+        const RANKS = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2'];
+        const RANK_VALUES = {
+            '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+            'J': 11, 'Q': 12, 'K': 13, 'A': 14, '2': 15, '小王': 16, '大王': 17
+        };
+        
+        // ============================================
+        // 游戏状态
+        // ============================================
+        let gameState = {
+            myCards: [],
+            player1Cards: [],
+            player2Cards: [],
+            bottomCards: [],
+            currentPlayer: 0,
+            landlord: -1,
+            lastPlay: null,
+            lastPlayer: -1,
+            passCount: 0,
+            selectedCards: [],
+            gamePhase: 'idle',
+            isLandlord: false,
+            myRole: 'farmer',
+            multiplier: 1,
+            bombCount: 0,
+            spring: false,
+            firstPlay: true
+        };
+        
+        // ============================================
+        // 初始化
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            showToast('🎮 欢迎来到欢乐斗地主！', 'info');
+            
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    playButtonSound();
+                });
+            });
+        });
+        
+        // ============================================
+        // 加载用户数据
+        // ============================================
+        function loadUserData() {
+            fetch('/api/get_user_data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const userData = data.data;
+                        document.getElementById('usernameDisplay').textContent = userData.username;
+                        document.getElementById('coinsDisplay').textContent = userData.coins;
+                        document.getElementById('myNameTag').textContent = userData.username;
+                    } else {
+                        window.location.href = '/';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载用户数据失败:', error);
+                });
+        }
+        
+        // ============================================
+        // Toast 消息
+        // ============================================
+        function showToast(text, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = text;
+            toast.className = 'toast show ' + type;
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+        
+        // ============================================
+        // 创建一副牌
+        // ============================================
+        function createDeck() {
+            const deck = [];
+            for (let suit of SUITS) {
+                for (let rank of RANKS) {
+                    deck.push({ suit, rank });
+                }
+            }
+            deck.push({ suit: '🃏', rank: '小王' });
+            deck.push({ suit: '🃏', rank: '大王' });
+            return deck;
+        }
+        
+        function shuffle(deck) {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+        
+        function sortCards(cards) {
+            return cards.sort((a, b) => {
+                const valA = RANK_VALUES[a.rank] || 0;
+                const valB = RANK_VALUES[b.rank] || 0;
+                if (valA !== valB) return valA - valB;
+                return SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit);
+            });
+        }
+        
+        // ============================================
+        // 开始新游戏
+        // ============================================
+        function startNewGame() {
+            playBackgroundMusic();
+            
+            gameState.gamePhase = 'calling';
+            gameState.selectedCards = [];
+            gameState.lastPlay = null;
+            gameState.lastPlayer = -1;
+            gameState.passCount = 0;
+            gameState.landlord = -1;
+            gameState.isLandlord = false;
+            gameState.multiplier = 1;
+            gameState.bombCount = 0;
+            gameState.spring = false;
+            gameState.firstPlay = true;
+            
+            const deck = shuffle(createDeck());
+            
+            gameState.myCards = sortCards(deck.slice(0, 17));
+            gameState.player1Cards = deck.slice(17, 34);
+            gameState.player2Cards = deck.slice(34, 51);
+            gameState.bottomCards = deck.slice(51, 54);
+            
+            for (let i = 0; i < 3; i++) {
+                const card = document.getElementById('bottomCard' + i);
+                card.className = 'bottom-card hidden';
+                card.textContent = '?';
+            }
+            
+            updateUI();
+            
+            document.getElementById('actionBar').style.display = 'none';
+            document.getElementById('callBar').style.display = 'flex';
+            
+            document.getElementById('myRole').textContent = '';
+            document.getElementById('myRole').className = 'my-role-badge';
+            document.getElementById('player1Role').textContent = '';
+            document.getElementById('player1Role').className = 'player-role-badge';
+            document.getElementById('player2Role').textContent = '';
+            document.getElementById('player2Role').className = 'player-role-badge';
+            
+            document.getElementById('playArea').innerHTML = '';
+            document.getElementById('playHint').textContent = '🎯 请选择是否叫地主';
+            
+            // 重置头像边框
+            document.getElementById('myAvatar').className = 'my-avatar';
+            document.getElementById('player1Avatar').className = 'player-avatar ai';
+            document.getElementById('player2Avatar').className = 'player-avatar ai';
+            
+            showToast('🃏 新游戏开始！请叫地主', 'info');
+        }
+        
+        // ============================================
+        // 叫地主
+        // ============================================
+        function callLandlord(call) {
+            if (call) {
+                gameState.landlord = 0;
+                gameState.isLandlord = true;
+                gameState.myRole = 'landlord';
+                gameState.myCards = sortCards([...gameState.myCards, ...gameState.bottomCards]);
+                
+                for (let i = 0; i < 3; i++) {
+                    const card = document.getElementById('bottomCard' + i);
+                    const bottomCard = gameState.bottomCards[i];
+                    const isRed = bottomCard.suit === '♥' || bottomCard.suit === '♦' || bottomCard.rank === '大王';
+                    card.className = 'bottom-card revealed ' + (isRed ? 'red' : 'black');
+                    card.textContent = bottomCard.suit + bottomCard.rank;
+                }
+                
+                showToast('👑 你是地主！', 'success');
+                startPlaying();
+            } else {
+                showToast('你选择不叫', 'info');
+                
+                if (Math.random() > 0.3) {
+                    gameState.landlord = 1;
+                    gameState.player1Cards = sortCards([...gameState.player1Cards, ...gameState.bottomCards]);
+                    showToast('🤖 电脑玩家1 叫地主！', 'warning');
+                } else {
+                    gameState.landlord = 2;
+                    gameState.player2Cards = sortCards([...gameState.player2Cards, ...gameState.bottomCards]);
+                    showToast('🤖 电脑玩家2 叫地主！', 'warning');
+                }
+                
+                for (let i = 0; i < 3; i++) {
+                    const card = document.getElementById('bottomCard' + i);
+                    const bottomCard = gameState.bottomCards[i];
+                    const isRed = bottomCard.suit === '♥' || bottomCard.suit === '♦' || bottomCard.rank === '大王';
+                    card.className = 'bottom-card revealed ' + (isRed ? 'red' : 'black');
+                    card.textContent = bottomCard.suit + bottomCard.rank;
+                }
+                
+                startPlaying();
+            }
+        }
+        
+        // ============================================
+        // 开始出牌
+        // ============================================
+        function startPlaying() {
+            gameState.gamePhase = 'playing';
+            updateRoles();
+            
+            document.getElementById('callBar').style.display = 'none';
+            document.getElementById('actionBar').style.display = 'flex';
+            
+            updateUI();
+            
+            gameState.currentPlayer = gameState.landlord;
+            
+            if (gameState.currentPlayer === 0) {
+                enableButtons(true);
+                document.getElementById('playHint').textContent = '🎯 轮到你出牌';
+                showToast('🎯 轮到你出牌', 'info');
+            } else {
+                enableButtons(false);
+                document.getElementById('playHint').textContent = '🤖 电脑思考中...';
+                setTimeout(computerPlay, 1500);
+            }
+            
+            updateUI();
+        }
+        
+        // ============================================
+        // 更新角色标识
+        // ============================================
+        function updateRoles() {
+            const roles = ['farmer', 'farmer', 'farmer'];
+            roles[gameState.landlord] = 'landlord';
+            
+            // 我的角色
+            const myRoleEl = document.getElementById('myRole');
+            myRoleEl.textContent = roles[0] === 'landlord' ? '👑 地主' : '🌾 农民';
+            myRoleEl.className = 'my-role-badge ' + roles[0];
+            
+            // 玩家1角色
+            const p1RoleEl = document.getElementById('player1Role');
+            p1RoleEl.textContent = roles[1] === 'landlord' ? '👑 地主' : '🌾 农民';
+            p1RoleEl.className = 'player-role-badge ' + roles[1];
+            
+            // 玩家2角色
+            const p2RoleEl = document.getElementById('player2Role');
+            p2RoleEl.textContent = roles[2] === 'landlord' ? '👑 地主' : '🌾 农民';
+            p2RoleEl.className = 'player-role-badge ' + roles[2];
+            
+            // 地主头像边框
+            document.getElementById('myAvatar').classList.toggle('landlord-avatar', roles[0] === 'landlord');
+            document.getElementById('player1Avatar').classList.toggle('landlord-avatar', roles[1] === 'landlord');
+            document.getElementById('player2Avatar').classList.toggle('landlord-avatar', roles[2] === 'landlord');
+        }
+        
+        // ============================================
+        // 更新界面
+        // ============================================
+        function updateUI() {
+            renderMyCards();
+            
+            // 更新对手牌数
+            document.getElementById('player1CardCount').textContent = gameState.player1Cards.length;
+            document.getElementById('player2CardCount').textContent = gameState.player2Cards.length;
+            
+            // 更新当前玩家高亮
+            document.getElementById('myAvatar').classList.toggle('active-player', gameState.currentPlayer === 0);
+            document.getElementById('player1Avatar').classList.toggle('active-player', gameState.currentPlayer === 1);
+            document.getElementById('player2Avatar').classList.toggle('active-player', gameState.currentPlayer === 2);
+        }
+        
+        // ============================================
+        // 渲染我的手牌
+        // ============================================
+        function renderMyCards() {
+            const container = document.getElementById('myCards');
+            container.innerHTML = '';
+            
+            gameState.myCards.forEach((card, index) => {
+                const div = document.createElement('div');
+                div.className = 'my-card';
+                
+                const isRed = card.suit === '♥' || card.suit === '♦';
+                const isJoker = card.rank === '小王' || card.rank === '大王';
+                
+                if (isJoker) {
+                    div.classList.add(card.rank === '大王' ? 'joker-red' : 'joker-black');
+                    div.innerHTML = `<span class="card-rank">${card.rank}</span>`;
+                } else {
+                    div.classList.add(isRed ? 'red' : 'black');
+                    div.innerHTML = `
+                        <span class="card-rank">${card.rank}</span>
+                        <span class="card-suit">${card.suit}</span>
+                    `;
+                }
+                
+                if (gameState.selectedCards.includes(index)) {
+                    div.classList.add('selected');
+                }
+                
+                div.onclick = function() {
+                    toggleSelectCard(index);
+                };
+                
+                container.appendChild(div);
+            });
+        }
+        
+        // ============================================
+        // 选中/取消选牌
+        // ============================================
+        function toggleSelectCard(index) {
+            if (gameState.gamePhase !== 'playing' || gameState.currentPlayer !== 0) return;
+            
+            const idx = gameState.selectedCards.indexOf(index);
+            if (idx === -1) {
+                gameState.selectedCards.push(index);
+            } else {
+                gameState.selectedCards.splice(idx, 1);
+            }
+            
+            renderMyCards();
+        }
+        
+        // ============================================
+        // 出牌
+        // ============================================
+        function playCards() {
+            if (gameState.gamePhase !== 'playing' || gameState.currentPlayer !== 0) {
+                showToast('还没轮到你出牌！', 'error');
+                return;
+            }
+            
+            if (gameState.selectedCards.length === 0) {
+                showToast('请先选择要出的牌！', 'error');
+                return;
+            }
+            
+            playCardSound();
+            
+            const selectedIndices = [...gameState.selectedCards].sort((a, b) => b - a);
+            const playedCards = selectedIndices.map(i => gameState.myCards[i]);
+            
+            const playType = validatePlay(playedCards);
+            if (!playType.valid) {
+                showToast('❌ ' + playType.message, 'error');
+                return;
+            }
+            
+            if (gameState.lastPlay && gameState.lastPlayer !== 0) {
+                const canBeat = canBeatPlay(playedCards, gameState.lastPlay);
+                if (!canBeat) {
+                    showToast('❌ 管不上，请选择更大的牌', 'error');
+                    return;
+                }
+            }
+            
+            if (playType.type === 'bomb') {
+                gameState.multiplier *= 2;
+                gameState.bombCount++;
+                showToast(`💥 炸弹！倍率 x${gameState.multiplier}`, 'warning');
+            } else if (playType.type === 'rocket') {
+                gameState.multiplier *= 2;
+                gameState.bombCount++;
+                showToast(`🚀 王炸！倍率 x${gameState.multiplier}`, 'warning');
+            }
+            
+            for (let i of selectedIndices) {
+                gameState.myCards.splice(i, 1);
+            }
+            gameState.selectedCards = [];
+            
+            gameState.lastPlay = playedCards;
+            gameState.lastPlayer = 0;
+            gameState.passCount = 0;
+            gameState.firstPlay = false;
+            
+            showPlayedCards(playedCards, '你');
+            
+            if (gameState.myCards.length === 0) {
+                gameOver(true);
+                return;
+            }
+            
+            showToast(`✅ 出牌成功！`, 'success');
+            enableButtons(false);
+            nextTurn();
+        }
+        
+        // ============================================
+        // 不出
+        // ============================================
+        function passTurn() {
+            if (gameState.gamePhase !== 'playing' || gameState.currentPlayer !== 0) {
+                showToast('还没轮到你！', 'error');
+                return;
+            }
+            
+            if (gameState.lastPlayer === 0 || gameState.lastPlayer === -1) {
+                showToast('你是第一个出牌的，必须出牌！', 'error');
+                return;
+            }
+            
+            gameState.passCount++;
+            showToast('⏭️ 你选择不出', 'info');
+            document.getElementById('playHint').textContent = '⏭️ 你选择不出';
+            enableButtons(false);
+            nextTurn();
+        }
+        
+        // ============================================
+        // 轮到下一个玩家
+        // ============================================
+        function nextTurn() {
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % 3;
+            
+            if (gameState.passCount >= 2) {
+                gameState.passCount = 0;
+                gameState.lastPlay = null;
+                gameState.lastPlayer = -1;
+                document.getElementById('playArea').innerHTML = '';
+                showToast('🔄 新轮次开始', 'info');
+            }
+            
+            updateUI();
+            
+            if (gameState.currentPlayer === 0) {
+                enableButtons(true);
+                document.getElementById('playHint').textContent = '🎯 轮到你出牌';
+                showToast('🎯 轮到你出牌', 'info');
+            } else {
+                enableButtons(false);
+                const playerName = gameState.currentPlayer === 1 ? '电脑玩家1' : '电脑玩家2';
+                document.getElementById('playHint').textContent = `🤖 ${playerName} 思考中...`;
+                setTimeout(computerPlay, 1500);
+            }
+        }
+        
+        // ============================================
+        // 电脑出牌
+        // ============================================
+        function computerPlay() {
+            const playerCards = gameState.currentPlayer === 1 ? gameState.player1Cards : gameState.player2Cards;
+            const playerName = gameState.currentPlayer === 1 ? '电脑玩家1' : '电脑玩家2';
+            
+            if (playerCards.length === 0) {
+                gameOver(false);
+                return;
+            }
+            
+            let played = null;
+            
+            if (gameState.lastPlayer === gameState.currentPlayer || gameState.lastPlayer === -1) {
+                played = [playerCards[0]];
+            } else {
+                played = findBeatPlay(playerCards, gameState.lastPlay);
+            }
+            
+            if (played) {
+                for (let card of played) {
+                    const idx = playerCards.indexOf(card);
+                    if (idx !== -1) playerCards.splice(idx, 1);
+                }
+                
+                gameState.lastPlay = played;
+                gameState.lastPlayer = gameState.currentPlayer;
+                gameState.passCount = 0;
+                
+                showPlayedCards(played, playerName);
+                showToast(`🤖 ${playerName} 出了 ${played.length} 张牌`, 'info');
+                
+                if (playerCards.length === 0) {
+                    gameOver(false);
+                    return;
+                }
+            } else {
+                gameState.passCount++;
+                showToast(`🤖 ${playerName} 选择不出`, 'info');
+                document.getElementById('playHint').textContent = `🤖 ${playerName} 选择不出`;
+            }
+            
+            updateUI();
+            nextTurn();
+        }
+        
+        // ============================================
+        // 显示出的牌
+        // ============================================
+        function showPlayedCards(cards, playerName) {
+            const area = document.getElementById('playArea');
+            area.innerHTML = '';
+            
+            cards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                
+                const isRed = card.suit === '♥' || card.suit === '♦';
+                const isJoker = card.rank === '小王' || card.rank === '大王';
+                
+                if (isJoker) {
+                    div.classList.add(card.rank === '大王' ? 'joker-red' : 'joker-black');
+                    div.innerHTML = `<span class="card-rank">${card.rank}</span>`;
+                } else {
+                    div.classList.add(isRed ? 'red' : 'black');
+                    div.innerHTML = `
+                        <span class="card-rank">${card.rank}</span>
+                        <span class="card-suit">${card.suit}</span>
+                    `;
+                }
+                
+                area.appendChild(div);
+            });
+            
+            document.getElementById('playHint').textContent = `${playerName} 出了 ${cards.length} 张牌`;
+        }
+        
+        // ============================================
+        // 验证牌型
+        // ============================================
+        function validatePlay(cards) {
+            if (cards.length === 0) return { valid: false, message: '请选择牌' };
+            
+            const n = cards.length;
+            const rankCount = {};
+            cards.forEach(c => { rankCount[c.rank] = (rankCount[c.rank] || 0) + 1; });
+            const counts = Object.values(rankCount).sort((a, b) => b - a);
+            const ranks = Object.keys(rankCount).sort((a, b) => RANK_VALUES[a] - RANK_VALUES[b]);
+            
+            if (n === 1) return { valid: true, type: 'single', rank: cards[0].rank };
+            if (n === 2 && cards[0].rank === cards[1].rank) return { valid: true, type: 'pair', rank: cards[0].rank };
+            
+            const hasSmall = cards.some(c => c.rank === '小王');
+            const hasBig = cards.some(c => c.rank === '大王');
+            if (n === 2 && hasSmall && hasBig) return { valid: true, type: 'rocket', rank: 'rocket' };
+            
+            if (n === 3 && counts[0] === 3) {
+                const rank = Object.keys(rankCount).find(r => rankCount[r] === 3);
+                return { valid: true, type: 'triple', rank: rank };
+            }
+            
+            if (n === 4 && counts[0] === 3 && counts[1] === 1) {
+                const rank = Object.keys(rankCount).find(r => rankCount[r] === 3);
+                return { valid: true, type: 'triple_one', rank: rank };
+            }
+            
+            if (n === 5 && counts[0] === 3 && counts[1] === 2) {
+                const rank = Object.keys(rankCount).find(r => rankCount[r] === 3);
+                return { valid: true, type: 'triple_two', rank: rank };
+            }
+            
+            if (n === 4 && counts[0] === 4) {
+                const rank = Object.keys(rankCount).find(r => rankCount[r] === 4);
+                return { valid: true, type: 'bomb', rank: rank };
+            }
+            
+            if (n === 6 && counts[0] === 4) {
+                const rank = Object.keys(rankCount).find(r => rankCount[r] === 4);
+                return { valid: true, type: 'four_two', rank: rank };
+            }
+            
+            if (n >= 5 && counts.every(c => c === 1)) {
+                let isStraight = true;
+                for (let i = 1; i < ranks.length; i++) {
+                    if (RANK_VALUES[ranks[i]] - RANK_VALUES[ranks[i-1]] !== 1) { isStraight = false; break; }
+                }
+                const hasInvalid = ranks.some(r => RANK_VALUES[r] > 14);
+                if (isStraight && !hasInvalid) return { valid: true, type: 'straight', rank: ranks[ranks.length-1], length: n };
+            }
+            
+            if (n >= 6 && n % 2 === 0 && counts.every(c => c === 2)) {
+                const pairCount = n / 2;
+                if (pairCount >= 3) {
+                    let isConsecutive = true;
+                    for (let i = 1; i < ranks.length; i++) {
+                        if (RANK_VALUES[ranks[i]] - RANK_VALUES[ranks[i-1]] !== 1) { isConsecutive = false; break; }
+                    }
+                    const hasInvalid = ranks.some(r => RANK_VALUES[r] > 14);
+                    if (isConsecutive && !hasInvalid) return { valid: true, type: 'consecutive_pairs', rank: ranks[ranks.length-1], length: pairCount };
+                }
+            }
+            
+            if (counts[0] === 3) {
+                const tripleRanks = Object.keys(rankCount).filter(r => rankCount[r] === 3).sort((a, b) => RANK_VALUES[a] - RANK_VALUES[b]);
+                const tripleCount = tripleRanks.length;
+                if (tripleCount >= 2) {
+                    let isConsecutive = true;
+                    for (let i = 1; i < tripleRanks.length; i++) {
+                        if (RANK_VALUES[tripleRanks[i]] - RANK_VALUES[tripleRanks[i-1]] !== 1) { isConsecutive = false; break; }
+                    }
+                    const hasInvalid = tripleRanks.some(r => RANK_VALUES[r] > 14);
+                    if (isConsecutive && !hasInvalid) {
+                        const remaining = n - tripleCount * 3;
+                        if (remaining === 0) return { valid: true, type: 'plane', rank: tripleRanks[tripleRanks.length-1], length: tripleCount };
+                        if (remaining === tripleCount) return { valid: true, type: 'plane_single', rank: tripleRanks[tripleRanks.length-1], length: tripleCount };
+                        if (remaining === tripleCount * 2) return { valid: true, type: 'plane_pair', rank: tripleRanks[tripleRanks.length-1], length: tripleCount };
+                    }
+                }
+            }
+            
+            return { valid: false, message: '无效的牌型' };
+        }
+        
+        // ============================================
+        // 判断是否能管上
+        // ============================================
+        function canBeatPlay(newPlay, lastPlay) {
+            const newType = validatePlay(newPlay);
+            const lastType = validatePlay(lastPlay);
+            if (!newType.valid || !lastType.valid) return false;
+            if (newType.type === 'rocket') return true;
+            if (lastType.type === 'rocket') return false;
+            if (newType.type === 'bomb' && lastType.type !== 'bomb') return true;
+            if (lastType.type === 'bomb' && newType.type !== 'bomb') return false;
+            if (newType.type !== lastType.type) return false;
+            if (['straight', 'consecutive_pairs', 'plane', 'plane_single', 'plane_pair'].includes(newType.type)) {
+                if (newType.length !== lastType.length) return false;
+            }
+            if (newPlay.length !== lastPlay.length) return false;
+            return RANK_VALUES[newType.rank] > RANK_VALUES[lastType.rank];
+        }
+        
+        // ============================================
+        // AI找能出的牌
+        // ============================================
+        function findBeatPlay(cards, lastPlay) {
+            if (!lastPlay) return [cards[0]];
+            const lastType = validatePlay(lastPlay);
+            if (!lastType.valid) return null;
+            const lastValue = RANK_VALUES[lastType.rank];
+            const rankCount = {};
+            cards.forEach(c => { rankCount[c.rank] = (rankCount[c.rank] || 0) + 1; });
+            
+            if (lastType.type === 'single') {
+                for (let card of cards) {
+                    if (RANK_VALUES[card.rank] > lastValue) return [card];
+                }
+            }
+            if (lastType.type === 'pair') {
+                for (let rank in rankCount) {
+                    if (rankCount[rank] >= 2 && RANK_VALUES[rank] > lastValue) return cards.filter(c => c.rank === rank).slice(0, 2);
+                }
+            }
+            if (lastType.type === 'triple') {
+                for (let rank in rankCount) {
+                    if (rankCount[rank] >= 3 && RANK_VALUES[rank] > lastValue) return cards.filter(c => c.rank === rank).slice(0, 3);
+                }
+            }
+            if (lastType.type === 'triple_one') {
+                for (let rank in rankCount) {
+                    if (rankCount[rank] >= 3 && RANK_VALUES[rank] > lastValue) {
+                        const triple = cards.filter(c => c.rank === rank).slice(0, 3);
+                        const remaining = cards.filter(c => c.rank !== rank);
+                        if (remaining.length > 0) return [...triple, remaining[0]];
+                    }
+                }
+            }
+            if (lastType.type === 'triple_two') {
+                for (let rank in rankCount) {
+                    if (rankCount[rank] >= 3 && RANK_VALUES[rank] > lastValue) {
+                        const triple = cards.filter(c => c.rank === rank).slice(0, 3);
+                        for (let r in rankCount) {
+                            if (r !== rank && rankCount[r] >= 2) {
+                                const pair = cards.filter(c => c.rank === r).slice(0, 2);
+                                return [...triple, ...pair];
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 找炸弹
+            for (let rank in rankCount) {
+                if (rankCount[rank] === 4) return cards.filter(c => c.rank === rank);
+            }
+            const hasSmall = cards.some(c => c.rank === '小王');
+            const hasBig = cards.some(c => c.rank === '大王');
+            if (hasSmall && hasBig) return cards.filter(c => c.rank === '小王' || c.rank === '大王');
+            
+            return null;
+        }
+        
+        // ============================================
+        // 提示
+        // ============================================
+        function getHint() {
+            if (gameState.gamePhase !== 'playing' || gameState.currentPlayer !== 0) {
+                showToast('现在不需要提示', 'error');
+                return;
+            }
+            let hintCards = [];
+            if (gameState.lastPlayer === 0 || gameState.lastPlayer === -1) {
+                hintCards = [0];
+            } else {
+                const beat = findBeatPlay(gameState.myCards, gameState.lastPlay);
+                if (beat) {
+                    hintCards = beat.map(c => gameState.myCards.indexOf(c));
+                } else {
+                    showToast('💡 没有能管上的牌，建议不出', 'warning');
+                    return;
+                }
+            }
+            gameState.selectedCards = hintCards;
+            renderMyCards();
+            showToast('💡 已为你选中推荐的牌', 'info');
+        }
+        
+        // ============================================
+        // 启用/禁用按钮
+        // ============================================
+        function enableButtons(enabled) {
+            document.getElementById('playBtn').disabled = !enabled;
+            document.getElementById('passBtn').disabled = !enabled;
+            document.getElementById('hintBtn').disabled = !enabled;
+        }
+        
+        // ============================================
+        // 游戏结束
+        // ============================================
+        function gameOver(isWin) {
+            gameState.gamePhase = 'ended';
+            enableButtons(false);
+            
+            if (isWin) { playWinSound(); } else { playLoseSound(); }
+            stopBackgroundMusic();
+            
+            if (isWin && gameState.firstPlay) {
+                gameState.multiplier *= 2;
+                gameState.spring = true;
+            }
+            
+            let coinChange = isWin ? 100 * gameState.multiplier : -50 * gameState.multiplier;
+            const result = isWin ? 'win' : 'loss';
+            
+            fetch('/api/update_result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ result: result })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('coinsDisplay').textContent = data.data.coins;
+                    
+                    const modal = document.getElementById('gameOverModal');
+                    const title = document.getElementById('modalTitle');
+                    const subtitle = document.getElementById('modalSubtitle');
+                    const coins = document.getElementById('modalCoins');
+                    const totalGames = document.getElementById('modalTotalGames');
+                    const winRate = document.getElementById('modalWinRate');
+                    
+                    if (isWin) {
+                        title.textContent = '🎉 恭喜胜利！';
+                        title.className = 'modal-title win';
+                        let subText = `倍率 x${gameState.multiplier}`;
+                        if (gameState.spring) subText += ' 🌸 春天！';
+                        if (gameState.bombCount > 0) subText += ` 💥 ${gameState.bombCount}个炸弹`;
+                        subtitle.textContent = subText;
+                        coins.textContent = `+${coinChange}`;
+                        coins.style.color = '#ffd700';
+                    } else {
+                        title.textContent = '😢 遗憾落败';
+                        title.className = 'modal-title lose';
+                        let subText = `倍率 x${gameState.multiplier}`;
+                        if (gameState.bombCount > 0) subText += ` 💥 ${gameState.bombCount}个炸弹`;
+                        subtitle.textContent = subText;
+                        coins.textContent = `${coinChange}`;
+                        coins.style.color = '#ff4444';
+                    }
+                    
+                    totalGames.textContent = data.data.total_games;
+                    const rate = data.data.total_games > 0 
+                        ? Math.round((data.data.wins / data.data.total_games) * 100) + '%' 
+                        : '0%';
+                    winRate.textContent = rate;
+                    
+                    modal.classList.add('show');
+                }
+            });
+        }
+        
+        // ============================================
+        // 关闭弹窗
+        // ============================================
+        function closeModal() {
+            document.getElementById('gameOverModal').classList.remove('show');
+            startNewGame();
+        }
+    </script>
+</body>
+</html>

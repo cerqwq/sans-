@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机斗地主</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #0a5c2a 0%, #0d4a2a 50%, #082818 100%);
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+        .top-bar {
+            background: linear-gradient(180deg, rgba(0,0,0,0.4), transparent);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 50px;
+        }
+        .top-bar-left { display: flex; align-items: center; gap: 10px; }
+        .top-bar-left .back-btn { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 20px; padding: 5px; }
+        .top-bar-left .game-title { font-size: 16px; font-weight: 700; color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .top-bar-right { display: flex; align-items: center; gap: 15px; }
+        .top-bar-right .room-info { font-size: 13px; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 15px; }
+        .game-table { width: 100vw; height: 100vh; position: relative; background: radial-gradient(ellipse at center, #1a7a3c 0%, #0d4a2a 50%, #082818 100%); }
+        .game-table::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(255,255,255,0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .player-top-left { position: absolute; top: 90px; left: 20px; display: flex; align-items: center; gap: 10px; z-index: 10; }
+        .player-top-right { position: absolute; top: 90px; right: 20px; display: flex; align-items: center; gap: 10px; z-index: 10; flex-direction: row-reverse; }
+        .player-avatar {
+            width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; position: relative; border: 3px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); flex-shrink: 0;
+        }
+        .player-avatar.ai { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .player-avatar.me-avatar { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .player-avatar.active-player { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: avatarPulse 1s ease-in-out infinite; }
+        .player-avatar.landlord-avatar { border-color: #ffd700; }
+        @keyframes avatarPulse { 0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.5); } 50% { box-shadow: 0 0 30px rgba(255,215,0,0.8); } }
+        .player-info { display: flex; flex-direction: column; gap: 4px; }
+        .player-info .player-name { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .opponent-cards-model { display: flex; align-items: center; gap: 5px; }
+        .opponent-card-back { width: 35px; height: 50px; background: linear-gradient(135deg, #1a5276, #2e86c1); border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .opponent-card-count { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.8); text-shadow: 0 1px 3px rgba(0,0,0,0.5); min-width: 30px; }
+        .play-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 6px; z-index: 20; min-height: 90px; align-items: center; justify-content: center; }
+        .play-area .card { width: 55px; height: 78px; background: white; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: cardDeal 0.3s ease-out; }
+        .play-area .card .card-rank { font-size: 16px; line-height: 1; }
+        .play-area .card .card-suit { font-size: 12px; line-height: 1; }
+        .play-area .card.red { color: #d32f2f; }
+        .play-area .card.black { color: #212121; }
+        @keyframes cardDeal { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        .play-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.6); font-size: 14px; z-index: 5; text-shadow: 0 2px 8px rgba(0,0,0,0.5); pointer-events: none; }
+        .my-area { position: absolute; bottom: 0; left: 0; right: 0; z-index: 30; padding-bottom: 10px; }
+        .my-info-bar { display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: linear-gradient(0deg, rgba(0,0,0,0.5), transparent); }
+        .my-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 24px; border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .my-avatar.active-player { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: avatarPulse 1s ease-in-out infinite; }
+        .my-info { display: flex; flex-direction: column; gap: 2px; }
+        .my-info .my-name { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.9); }
+        .my-cards-container { display: flex; justify-content: center; padding: 5px 20px; overflow-x: auto; gap: 3px; min-height: 100px; }
+        .my-cards-container::-webkit-scrollbar { height: 4px; }
+        .my-cards-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .my-card { width: 58px; height: 82px; background: white; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.3); flex-shrink: 0; border: 2px solid #e0e0e0; position: relative; }
+        .my-card .card-rank { font-size: 16px; line-height: 1; }
+        .my-card .card-suit { font-size: 12px; line-height: 1; }
+        .my-card.red { color: #d32f2f; }
+        .my-card.black { color: #212121; }
+        .my-card:hover { transform: translateY(-10px); box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
+        .my-card.selected { transform: translateY(-22px); box-shadow: 0 12px 35px rgba(255,215,0,0.4); border-color: #ffd700; }
+        .action-bar { display: flex; gap: 10px; justify-content: center; padding: 8px 20px; }
+        .action-btn { padding: 10px 28px; border: none; border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: inherit; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+        .action-btn.play { background: linear-gradient(135deg, #ff6b35, #ff4444); color: white; }
+        .action-btn.pass { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .action-btn.call { background: linear-gradient(135deg, #ff6b35, #ff4444); color: white; }
+        .action-btn.no-call { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .action-btn.ready { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #0a4a2a; }
+        .action-btn.ready.ready-active { background: linear-gradient(135deg, #888, #666); color: white; }
+        .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 700; z-index: 999; display: none; animation: toastIn 0.3s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .toast.show { display: block; }
+        @keyframes toastIn { 0% { transform: translateX(-50%) translateY(-20px); opacity: 0; } 100% { transform: translateX(-50%) translateY(0); opacity: 1; } }
+        .toast.info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .toast.success { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #0a4a2a; }
+        .toast.error { background: linear-gradient(135deg, #ff6b35, #ff4444); color: white; }
+        .toast.warning { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #8b0000; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: linear-gradient(135deg, #1a2a4a, #0d1b2a); border-radius: 24px; padding: 35px; text-align: center; border: 2px solid rgba(255,215,0,0.2); box-shadow: 0 30px 80px rgba(0,0,0,0.5); max-width: 380px; width: 90%; animation: modalIn 0.3s ease-out; }
+        @keyframes modalIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .modal-title { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+        .modal-title.win { color: #ffd700; }
+        .modal-title.lose { color: #ff4444; }
+        .modal-subtitle { color: #aaa; margin-bottom: 20px; font-size: 14px; }
+        .modal-btn { padding: 12px 35px; border: none; border-radius: 25px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: inherit; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #8b0000; }
+        .modal-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255,215,0,0.3); }
+        @media (max-width: 768px) {
+            .my-card { width: 45px; height: 64px; font-size: 11px; }
+            .my-card .card-rank { font-size: 13px; }
+            .my-card .card-suit { font-size: 10px; }
+            .play-area .card { width: 45px; height: 64px; font-size: 12px; }
+            .player-avatar { width: 45px; height: 45px; font-size: 22px; }
+            .my-avatar { width: 42px; height: 42px; font-size: 20px; }
+            .action-btn { padding: 8px 20px; font-size: 12px; }
+            .opponent-card-back { width: 28px; height: 40px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/lobby" class="back-btn">←</a>
+            <span class="game-title">🃏 联机斗地主</span>
+        </div>
+        <div class="top-bar-right">
+            <div class="room-info" id="roomInfo">房间: 加载中...</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="game-table">
+        
+        <div class="player-top-left" id="player1Area">
+            <div class="player-avatar ai" id="player1Avatar">👤</div>
+            <div class="player-info">
+                <div class="player-name" id="player1Name">等待中...</div>
+                <div class="opponent-cards-model">
+                    <div class="opponent-card-back">🃏</div>
+                    <span class="opponent-card-count" id="player1CardCount">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="player-top-right" id="player2Area">
+            <div class="player-avatar ai" id="player2Avatar">👤</div>
+            <div class="player-info" style="text-align:right;">
+                <div class="player-name" id="player2Name">等待中...</div>
+                <div class="opponent-cards-model" style="justify-content:flex-end;">
+                    <span class="opponent-card-count" id="player2CardCount">0</span>
+                    <div class="opponent-card-back">🃏</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="play-area" id="playArea"></div>
+        <div class="play-hint" id="playHint">等待游戏开始...</div>
+        
+        <div class="my-area">
+            <div class="my-info-bar">
+                <div class="my-avatar" id="myAvatar">😊</div>
+                <div class="my-info">
+                    <div class="my-name" id="myNameTag">我</div>
+                </div>
+            </div>
+            <div class="my-cards-container" id="myCards"></div>
+            
+            <!-- 准备按钮 -->
+            <div class="action-bar" id="readyBar">
+                <button class="action-btn ready" id="readyBtn" onclick="toggleReady()">准备</button>
+            </div>
+            
+            <!-- 出牌按钮 -->
+            <div class="action-bar" id="actionBar" style="display:none;">
+                <button class="action-btn play" id="playBtn" onclick="playCardsOnline()" disabled>出牌</button>
+                <button class="action-btn pass" id="passBtn" onclick="passTurnOnline()" disabled>不出</button>
+            </div>
+            
+            <!-- 叫地主按钮 -->
+            <div class="action-bar" id="callBar" style="display:none;">
+                <button class="action-btn call" id="callBtn" onclick="callLandlordOnline(true)">叫地主</button>
+                <button class="action-btn no-call" id="noCallBtn" onclick="callLandlordOnline(false)">不叫</button>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">🎉 游戏结束</div>
+            <div class="modal-subtitle" id="modalSubtitle"></div>
+            <button class="modal-btn" onclick="backToLobby()">返回大厅</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCode = urlParams.get('room');
+        
+        let myCards = [];
+        let myPosition = -1;
+        let players = [];
+        let selectedCards = [];
+        let isMyTurn = false;
+        let isReady = false;
+        
+        document.getElementById('roomInfo').textContent = `房间: ${roomCode || '未知'}`;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/get_user_data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const username = data.data.username;
+                        document.getElementById('myNameTag').textContent = username;
+                        
+                        if (roomCode) {
+                            socket.emit('join_game', {
+                                room_code: roomCode,
+                                username: username
+                            });
+                            showToast('🔄 正在加入游戏...', 'info');
+                        } else {
+                            showToast('❌ 房间号无效', 'error');
+                        }
+                    } else {
+                        window.location.href = '/';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取用户信息失败:', error);
+                    showToast('❌ 获取用户信息失败', 'error');
+                });
+        });
+        
+        // 房间状态更新
+        socket.on('room_state', function(data) {
+            updatePlayers(data.players);
+            updateReadyButton(data.players);
+        });
+        
+        // 玩家准备状态更新
+        socket.on('player_ready_update', function(data) {
+            updatePlayers(data.players);
+            updateReadyButton(data.players);
+            
+            if (data.all_ready) {
+                showToast('🎮 所有玩家已准备，游戏开始！', 'success');
+            }
+        });
+        
+        // 游戏开始（发牌）
+        socket.on('game_started', function(data) {
+            myCards = data.your_cards;
+            myPosition = data.your_position;
+            players = data.players;
+            
+            renderMyCards();
+            updatePlayers(data.players);
+            
+            document.getElementById('readyBar').style.display = 'none';
+            document.getElementById('callBar').style.display = 'none';
+            document.getElementById('actionBar').style.display = 'none';
+            
+            document.getElementById('playHint').textContent = `🃏 发牌完成，等待叫地主... 倍率 x${data.multiplier}`;
+            
+            players.forEach(p => {
+                const avatarId = p.position === 0 ? 'player1Avatar' : 
+                                p.position === 1 ? 'player2Avatar' : 'myAvatar';
+                const el = document.getElementById(avatarId);
+                if (el) {
+                    el.classList.remove('landlord-avatar');
+                }
+            });
+        });
+        
+        // 轮到叫地主
+        socket.on('your_turn_to_call', function(data) {
+            isMyTurn = true;
+            document.getElementById('playHint').textContent = `🎯 请选择是否叫地主 (倍率 x${data.multiplier})`;
+            document.getElementById('actionBar').style.display = 'none';
+            document.getElementById('callBar').style.display = 'flex';
+            showToast('🎯 轮到你叫地主', 'info');
+        });
+        
+        // 叫地主结果
+        socket.on('call_result', function(data) {
+            const action = data.action === 'call' ? '叫地主' : '不叫';
+            showToast(`${data.username} ${action}！倍率 x${data.multiplier}`, 'info');
+        });
+        
+        // 地主确认
+        socket.on('landlord_confirmed', function(data) {
+            document.getElementById('callBar').style.display = 'none';
+            document.getElementById('actionBar').style.display = 'flex';
+            
+            if (data.your_cards) {
+                myCards = data.your_cards;
+                renderMyCards();
+            }
+            
+            players = data.players;
+            updatePlayers(data.players);
+            
+            document.getElementById('playHint').textContent = `👑 地主: ${data.landlord_username} 倍率 x${data.multiplier}`;
+            
+            players.forEach(p => {
+                const avatarId = p.position === 0 ? 'player1Avatar' : 
+                                p.position === 1 ? 'player2Avatar' : 'myAvatar';
+                const el = document.getElementById(avatarId);
+                if (el) {
+                    el.classList.toggle('landlord-avatar', p.is_landlord);
+                }
+            });
+        });
+        
+        // 轮到出牌
+        socket.on('your_turn_to_play', function(data) {
+            isMyTurn = true;
+            enableButtons(true);
+            document.getElementById('playHint').textContent = '🎯 轮到你出牌';
+            showToast('🎯 轮到你出牌', 'info');
+        });
+        
+        // 所有人都没叫地主
+        socket.on('all_no_call', function(data) {
+            showToast('🔄 所有人都没叫地主，重新发牌', 'warning');
+        });
+        
+        // 接收出牌
+        socket.on('cards_played', function(data) {
+            showPlayedCards(data.cards, data.username);
+            
+            players.forEach(p => {
+                if (p.username === data.username) {
+                    p.card_count = data.card_count;
+                }
+            });
+            updatePlayers(players);
+            
+            isMyTurn = (data.next_turn === myPosition);
+            enableButtons(isMyTurn);
+            
+            if (isMyTurn) {
+                document.getElementById('playHint').textContent = '🎯 轮到你出牌';
+                showToast('🎯 轮到你出牌', 'info');
+            } else {
+                const nextPlayer = players.find(p => p.position === data.next_turn);
+                document.getElementById('playHint').textContent = `🤖 ${nextPlayer?.username || '对方'} 思考中...`;
+            }
+        });
+        
+        // 对方不出
+        socket.on('turn_passed', function(data) {
+            showToast(`⏭️ ${data.username} 选择不出`, 'info');
+            
+            isMyTurn = (data.next_turn === myPosition);
+            enableButtons(isMyTurn);
+            
+            if (isMyTurn) {
+                document.getElementById('playHint').textContent = '🎯 轮到你出牌';
+            } else {
+                const nextPlayer = players.find(p => p.position === data.next_turn);
+                document.getElementById('playHint').textContent = `🤖 ${nextPlayer?.username || '对方'} 思考中...`;
+            }
+        });
+        
+        // 新轮次
+        socket.on('new_round', function(data) {
+            document.getElementById('playArea').innerHTML = '';
+            showToast('🔄 新轮次开始', 'info');
+        });
+        
+        // 游戏结束
+        socket.on('game_over', function(data) {
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('modalTitle');
+            const subtitle = document.getElementById('modalSubtitle');
+            
+            const me = players.find(p => p.position === myPosition);
+            if (data.winner === me?.username) {
+                title.textContent = '🎉 恭喜胜利！';
+                title.className = 'modal-title win';
+                subtitle.textContent = `倍率 x${data.multiplier}${data.bomb_count > 0 ? ` 💥 ${data.bomb_count}个炸弹` : ''}`;
+            } else {
+                title.textContent = '😢 遗憾落败';
+                title.className = 'modal-title lose';
+                subtitle.textContent = `${data.winner} 赢得了比赛`;
+            }
+            
+            modal.classList.add('show');
+        });
+        
+        // 错误消息
+        socket.on('error', function(data) {
+            showToast('❌ ' + data.message, 'error');
+        });
+        
+        // 准备/取消准备
+        function toggleReady() {
+            socket.emit('player_ready', {
+                room_code: roomCode
+            });
+        }
+        
+        // 叫地主
+        function callLandlordOnline(call) {
+            if (!isMyTurn) {
+                showToast('还没轮到你！', 'error');
+                return;
+            }
+            
+            socket.emit('call_landlord', {
+                room_code: roomCode,
+                call: call
+            });
+            
+            isMyTurn = false;
+            document.getElementById('callBar').style.display = 'none';
+        }
+        
+        // 更新准备按钮
+        function updateReadyButton(playersData) {
+            const me = playersData.find(p => p.position === myPosition);
+            const readyBtn = document.getElementById('readyBtn');
+            
+            if (me) {
+                if (me.ready) {
+                    readyBtn.textContent = '✅ 已准备';
+                    readyBtn.classList.add('ready-active');
+                } else {
+                    readyBtn.textContent = '准备';
+                    readyBtn.classList.remove('ready-active');
+                }
+            }
+        }
+        
+        // 渲染手牌
+        function renderMyCards() {
+            const container = document.getElementById('myCards');
+            container.innerHTML = '';
+            
+            myCards.forEach((card, index) => {
+                const div = document.createElement('div');
+                div.className = 'my-card';
+                
+                const suit = card[0];
+                const rank = card.substring(1);
+                const isRed = suit === '♥' || suit === '♦';
+                
+                div.classList.add(isRed ? 'red' : 'black');
+                div.innerHTML = `
+                    <span class="card-rank">${rank}</span>
+                    <span class="card-suit">${suit}</span>
+                `;
+                
+                if (selectedCards.includes(index)) {
+                    div.classList.add('selected');
+                }
+                
+                div.onclick = function() {
+                    toggleSelectCard(index);
+                };
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function toggleSelectCard(index) {
+            if (!isMyTurn) return;
+            
+            const idx = selectedCards.indexOf(index);
+            if (idx === -1) {
+                selectedCards.push(index);
+            } else {
+                selectedCards.splice(idx, 1);
+            }
+            
+            renderMyCards();
+        }
+        
+        function updatePlayers(playersData) {
+            playersData.forEach(p => {
+                if (p.position === 0) {
+                    document.getElementById('player1Name').textContent = p.username;
+                    document.getElementById('player1CardCount').textContent = p.card_count;
+                } else if (p.position === 1) {
+                    document.getElementById('player2Name').textContent = p.username;
+                    document.getElementById('player2CardCount').textContent = p.card_count;
+                }
+            });
+            
+            const me = playersData.find(p => p.position === myPosition);
+            if (me) {
+                document.getElementById('myNameTag').textContent = me.username;
+            }
+        }
+        
+        function showPlayedCards(cards, username) {
+            const area = document.getElementById('playArea');
+            area.innerHTML = '';
+            
+            cards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                
+                const suit = card[0];
+                const rank = card.substring(1);
+                const isRed = suit === '♥' || suit === '♦';
+                
+                div.classList.add(isRed ? 'red' : 'black');
+                div.innerHTML = `
+                    <span class="card-rank">${rank}</span>
+                    <span class="card-suit">${suit}</span>
+                `;
+                
+                area.appendChild(div);
+            });
+            
+            document.getElementById('playHint').textContent = `${username} 出了 ${cards.length} 张牌`;
+        }
+        
+        function playCardsOnline() {
+            if (!isMyTurn) {
+                showToast('还没轮到你出牌！', 'error');
+                return;
+            }
+            
+            if (selectedCards.length === 0) {
+                showToast('请先选择要出的牌！', 'error');
+                return;
+            }
+            
+            const cards = selectedCards.map(i => myCards[i]);
+            
+            for (let i of selectedCards.sort((a, b) => b - a)) {
+                myCards.splice(i, 1);
+            }
+            selectedCards = [];
+            
+            socket.emit('play_cards', {
+                room_code: roomCode,
+                cards: cards
+            });
+            
+            renderMyCards();
+            isMyTurn = false;
+            enableButtons(false);
+        }
+        
+        function passTurnOnline() {
+            if (!isMyTurn) {
+                showToast('还没轮到你！', 'error');
+                return;
+            }
+            
+            socket.emit('pass_turn', {
+                room_code: roomCode
+            });
+            
+            isMyTurn = false;
+            enableButtons(false);
+            showToast('⏭️ 你选择不出', 'info');
+        }
+        
+        function enableButtons(enabled) {
+            document.getElementById('playBtn').disabled = !enabled;
+            document.getElementById('passBtn').disabled = !enabled;
+        }
+        
+        function showToast(text, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = text;
+            toast.className = 'toast show ' + type;
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+        
+        function backToLobby() {
+            window.location.href = '/lobby';
+        }
+    </script>
+</body>
+</html>

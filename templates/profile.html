@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .info-card h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            color: #888;
+        }
+        .value {
+            color: #333;
+            font-weight: bold;
+        }
+        .value.gold { color: #ffd700; }
+        .value.green { color: #43e97b; }
+        .value.red { color: #ff4444; }
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👤 个人中心</h1>
+        
+        <div class="info-card">
+            <h2>📋 账号信息</h2>
+            <div class="info-row">
+                <span class="label">用户名</span>
+                <span class="value" id="username">加载中...</span>
+            </div>
+            <div class="info-row">
+                <span class="label">注册时间</span>
+                <span class="value" id="createdAt">加载中...</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h2>🃏 游戏数据</h2>
+            <div class="info-row">
+                <span class="label">💰 金币</span>
+                <span class="value gold" id="coins">0</span>
+            </div>
+            <div class="info-row">
+                <span class="label">🏆 胜利</span>
+                <span class="value green" id="wins">0</span>
+            </div>
+            <div class="info-row">
+                <span class="label">💔 失败</span>
+                <span class="value red" id="losses">0</span>
+            </div>
+            <div class="info-row">
+                <span class="label">🤝 平局</span>
+                <span class="value" id="draws">0</span>
+            </div>
+            <div class="info-row">
+                <span class="label">📋 总场数</span>
+                <span class="value" id="totalGames">0</span>
+            </div>
+            <div class="info-row">
+                <span class="label">📈 胜率</span>
+                <span class="value green" id="winRate">0%</span>
+            </div>
+        </div>
+        
+        <a href="/nav" class="back-btn">← 返回导航</a>
+    </div>
+    
+    <script>
+        fetch('/api/get_user_data')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const d = data.data;
+                    document.getElementById('username').textContent = d.username;
+                    document.getElementById('createdAt').textContent = d.created_at;
+                    document.getElementById('coins').textContent = d.coins;
+                    document.getElementById('wins').textContent = d.wins;
+                    document.getElementById('losses').textContent = d.losses;
+                    document.getElementById('draws').textContent = d.draws;
+                    document.getElementById('totalGames').textContent = d.total_games;
+                    
+                    const rate = d.total_games > 0 
+                        ? Math.round((d.wins / d.total_games) * 100) + '%' 
+                        : '0%';
+                    document.getElementById('winRate').textContent = rate;
+                }
+            });
+    </script>
+</body>
+</html>

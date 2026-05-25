@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录界面</title>
+    
+    <!-- ============================================ -->
+    <!-- CSS 样式 -->
+    <!-- 作用：美化登录界面，让页面更好看 -->
+    <!-- ============================================ -->
+    <style>
+        /* 全局样式：清除默认边距，设置字体 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* 页面背景：渐变紫色，居中显示 */
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 登录卡片：白色背景，圆角，阴影 */
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 400px;
+            max-width: 90%;
+        }
+        
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        /* 每个输入框的外层容器 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        /* 标签文字样式 */
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* 输入框样式 */
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        
+        /* 输入框聚焦时的样式（点击输入时） */
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        /* 登录按钮样式 */
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        /* 鼠标悬停在按钮上的效果 */
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* 按钮点击时的效果 */
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 消息提示框样式 */
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;  /* 默认隐藏 */
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* 成功消息：绿色背景 */
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        /* 错误消息：红色背景 */
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        /* 多账号提示样式 */
+        .multi-hint {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .multi-hint span {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- HTML 结构 -->
+    <!-- 作用：定义登录界面的布局 -->
+    <!-- ============================================ -->
+    <div class="container">
+        
+        <!-- 标题 -->
+        <h1>🔐 用户登录</h1>
+        
+        <!-- 用户名输入框 -->
+        <div class="form-group">
+            <label for="username">账号</label>
+            <input type="text" id="username" placeholder="请输入账号" autocomplete="username">
+        </div>
+        
+        <!-- 密码输入框 -->
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+        </div>
+        
+        <!-- 登录按钮 -->
+        <button class="login-btn" onclick="login()">登 录</button>
+        <!-- 在登录按钮后面添加 -->
+        <div style="text-align:center;margin-top:15px;">
+           <span style="color:#888;font-size:13px;">还没有账号？</span>
+          <a href="/register_page" style="color:#667eea;font-size:13px;text-decoration:none;font-weight:600;">立即注册</a>
+        </div>
+
+        
+        <!-- 多账号提示 -->
+        <div class="multi-hint">
+            💡 登录后会自动打开新标签页，<span>可继续登录其他账号</span>
+        </div>
+        
+        <!-- 消息提示区域（默认隐藏，登录后显示） -->
+        <div id="message" class="message"></div>
+        
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JavaScript 逻辑 -->
+    <!-- 作用：处理登录请求和页面交互 -->
+    <!-- ============================================ -->
+    <script>
+        /**
+         * 显示消息提示
+         * @param {string} text - 要显示的文字
+         * @param {boolean} isSuccess - 是否是成功消息（true=绿色，false=红色）
+         */
+        function showMessage(text, isSuccess) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;           // 设置消息文字
+            msg.className = 'message';        // 重置样式
+            msg.classList.add(isSuccess ? 'success' : 'error');  // 添加成功或失败样式
+            msg.style.display = 'block';      // 显示消息框
+        }
+        
+        /**
+         * 登录函数
+         * 作用：获取输入的用户名和密码，发送到后端验证
+         */
+        function login() {
+            // 获取输入框的值，并去除首尾空格
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // 检查是否为空
+            if (!username || !password) {
+                showMessage('请输入账号和密码！', false);
+                return;  // 停止执行
+            }
+            
+            // 使用 fetch API 向后端发送登录请求
+            fetch('/login', {
+                method: 'POST',                          // 使用POST方法
+                headers: {
+                    'Content-Type': 'application/json'   // 告诉后端发送的是JSON数据
+                },
+                body: JSON.stringify({                   // 把数据转换成JSON格式
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())           // 解析后端返回的JSON数据
+            .then(data => {
+                // 显示后端返回的消息
+                showMessage(data.message, data.success);
+                
+                // 如果登录成功
+                if (data.success) {
+                    // 延迟0.5秒后在新标签页打开导航页
+                    setTimeout(function() {
+                        // 在新标签页打开导航页（不关闭当前登录页）
+                        window.open('/nav', '_blank');
+                        
+                        // 清空输入框，方便继续登录其他账号
+                        document.getElementById('username').value = '';
+                        document.getElementById('password').value = '';
+                        
+                        // 隐藏消息提示
+                        document.getElementById('message').style.display = 'none';
+                        
+                        // 显示提示信息
+                        showMessage('✅ 登录成功！已在新标签页打开，可以继续登录其他账号', true);
+                    }, 500);
+                }
+            })
+            .catch(error => {
+                // 如果网络出错，显示错误提示
+                showMessage('网络错误，请稍后重试！', false);
+            });
+        }
+        
+        /**
+         * 回车键支持
+         * 作用：在输入框中按回车键，自动触发登录
+         */
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                login();  // 按回车键时调用登录函数
+            }
+        });
+    </script>
+</body>
+</html>

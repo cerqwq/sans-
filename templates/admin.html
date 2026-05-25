@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    
+    <style>
+        /* ============================================ */
+        /* 全局样式 */
+        /* ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+        
+        /* ============================================ */
+        /* 顶部导航 */
+        /* ============================================ */
+        .header {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(135deg, #ffd700, #ff6b35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .header-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        
+        .header-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .header-btn.back {
+            background: rgba(255,255,255,0.1);
+            color: #ccc;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        
+        .header-btn.back:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .header-btn.refresh {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        /* ============================================ */
+        /* 统计卡片 */
+        /* ============================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .stat-card.total .stat-value { color: #667eea; }
+        .stat-card.coins .stat-value { color: #ffd700; }
+        .stat-card.games .stat-value { color: #43e97b; }
+        
+        /* ============================================ */
+        /* 搜索和筛选 */
+        /* ============================================ */
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .search-input::placeholder {
+            color: #666;
+        }
+        
+        .search-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+        
+        /* ============================================ */
+        /* 用户表格 */
+        /* ============================================ */
+        .table-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        th {
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 13px;
+            color: #888;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        td {
+            padding: 15px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: middle;
+        }
+        
+        tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+        
+        .user-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .user-rank.gold {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .user-rank.silver {
+            background: linear-gradient(135deg, #e0e0e0, #a0a0a0);
+            color: #333;
+        }
+        
+        .user-rank.bronze {
+            background: linear-gradient(135deg, #cd7f32, #8b4513);
+            color: white;
+        }
+        
+        .user-rank.normal {
+            background: rgba(255,255,255,0.1);
+            color: #999;
+        }
+        
+        .coins-value {
+            color: #ffd700;
+            font-weight: 700;
+        }
+        
+        .wins-value {
+            color: #43e97b;
+            font-weight: 700;
+        }
+        
+        .losses-value {
+            color: #ff6b6b;
+            font-weight: 700;
+        }
+        
+        /* ============================================ */
+        /* 操作按钮 */
+        /* ============================================ */
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            font-weight: 600;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .action-btn.edit {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .action-btn.add {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        .action-btn.subtract {
+            background: linear-gradient(135deg, #ff6b35, #ff4444);
+            color: white;
+        }
+        
+        .action-btn.reset {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #8b0000;
+        }
+        
+        .action-btn.delete {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+        }
+        
+        /* ============================================ */
+        /* 弹窗 */
+        /* ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2a4a, #0d1b2a);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255,215,0,0.2);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            max-width: 450px;
+            width: 90%;
+            animation: modalIn 0.3s ease-out;
+        }
+        
+        @keyframes modalIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .modal-title {
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+        
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-size: 14px;
+        }
+        
+        .modal-form-group input,
+        .modal-form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .modal-form-group input:focus,
+        .modal-form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .modal-form-group select option {
+            background: #1a2a4a;
+            color: white;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+        
+        .modal-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .modal-btn.cancel {
+            background: rgba(255,255,255,0.1);
+            color: #ccc;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        
+        .modal-btn.danger {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+        }
+        
+        /* ============================================ */
+        /* Toast 消息 */
+        /* ============================================ */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 9999;
+            display: none;
+            animation: toastIn 0.3s ease-out;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .toast.show {
+            display: block;
+        }
+        
+        @keyframes toastIn {
+            0% { transform: translateX(100px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast.success {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a;
+        }
+        
+        .toast.error {
+            background: linear-gradient(135deg, #ff6b35, #ff4444);
+            color: white;
+        }
+        
+        .toast.info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        /* ============================================ */
+        /* 响应式 */
+        /* ============================================ */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .search-bar {
+                flex-direction: column;
+            }
+            
+            .action-btns {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- Toast 消息 -->
+    <!-- ============================================ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ============================================ -->
+    <!-- 顶部导航 -->
+    <!-- ============================================ -->
+    <div class="header">
+        <div>
+            <h1>⚙️ 管理后台</h1>
+            <p style="color:#888;font-size:13px;margin-top:5px;">管理用户数据和游戏配置</p>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn refresh" onclick="loadUsers()">🔄 刷新数据</button>
+            <a href="/nav" class="header-btn back">← 返回导航</a>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 统计卡片 -->
+    <!-- ============================================ -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value" id="totalUsers">0</div>
+            <div class="stat-label">总用户数</div>
+        </div>
+        <div class="stat-card coins">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="totalCoins">0</div>
+            <div class="stat-label">总金币数</div>
+        </div>
+        <div class="stat-card games">
+            <div class="stat-icon">🎮</div>
+            <div class="stat-value" id="totalGames">0</div>
+            <div class="stat-label">总游戏场数</div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 搜索栏 -->
+    <!-- ============================================ -->
+    <div class="search-bar">
+        <input type="text" class="search-input" id="searchInput" 
+               placeholder="🔍 搜索用户名..." oninput="filterUsers()">
+        <button class="search-btn" onclick="filterUsers()">搜索</button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 用户表格 -->
+    <!-- ============================================ -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>用户名</th>
+                    <th>💰 金币</th>
+                    <th>🏆 胜利</th>
+                    <th>💔 失败</th>
+                    <th>📋 总场次</th>
+                    <th>📈 胜率</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <!-- 数据由 JavaScript 动态生成 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 编辑金币弹窗 -->
+    <!-- ============================================ -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-title" id="editModalTitle">💰 编辑金币</div>
+            
+            <div class="modal-form-group">
+                <label>用户名</label>
+                <input type="text" id="editUsername" readonly style="opacity:0.7;">
+            </div>
+            
+            <div class="modal-form-group">
+                <label>当前金币</label>
+                <input type="text" id="editCurrentCoins" readonly style="opacity:0.7;">
+            </div>
+            
+            <div class="modal-form-group">
+                <label>操作类型</label>
+                <select id="editOperation">
+                    <option value="set">设置为</option>
+                    <option value="add">增加</option>
+                    <option value="subtract">减少</option>
+                </select>
+            </div>
+            
+            <div class="modal-form-group">
+                <label>金额</label>
+                <input type="number" id="editAmount" placeholder="请输入金额" min="0" value="100">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('editModal')">取消</button>
+                <button class="modal-btn confirm" onclick="confirmEdit()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 删除确认弹窗 -->
+    <!-- ============================================ -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-title" style="color:#ff4757;">⚠️ 确认删除</div>
+            <p style="color:#ccc;margin-bottom:20px;line-height:1.6;">
+                确定要删除用户 <strong id="deleteUsername" style="color:#ffd700;"></strong> 吗？<br>
+                此操作将删除该用户的所有数据，且不可恢复！
+            </p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('deleteModal')">取消</button>
+                <button class="modal-btn danger" onclick="confirmDelete()">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JavaScript -->
+    <!-- ============================================ -->
+    <script>
+        // ============================================
+        // 全局变量
+        // ============================================
+        let allUsers = [];  // 存储所有用户数据
+        let currentEditUser = null;  // 当前正在编辑的用户
+        let currentDeleteUser = null;  // 当前正在删除的用户
+        
+        // ============================================
+        // 页面加载时加载数据
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+        });
+        
+        // ============================================
+        // 显示 Toast 消息
+        // ============================================
+        function showToast(text, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = text;
+            toast.className = 'toast show ' + type;
+            
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // ============================================
+        // 加载所有用户数据
+        // ============================================
+        function loadUsers() {
+            showToast('🔄 正在加载数据...', 'info');
+            
+            fetch('/api/admin/users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allUsers = data.users;
+                        renderTable(allUsers);
+                        updateStats(allUsers);
+                        showToast('✅ 数据加载成功！', 'success');
+                    } else {
+                        showToast('❌ ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('❌ 加载失败，请检查网络', 'error');
+                    console.error('加载用户数据失败:', error);
+                });
+        }
+        
+        // ============================================
+        // 更新统计信息
+        // ============================================
+        function updateStats(users) {
+            document.getElementById('totalUsers').textContent = users.length;
+            
+            let totalCoins = 0;
+            let totalGames = 0;
+            
+            users.forEach(user => {
+                totalCoins += user.coins || 0;
+                totalGames += user.total_games || 0;
+            });
+            
+            document.getElementById('totalCoins').textContent = totalCoins.toLocaleString();
+            document.getElementById('totalGames').textContent = totalGames;
+        }
+        
+        // ============================================
+        // 渲染表格
+        // ============================================
+        function renderTable(users) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:40px;color:#888;">
+                            📭 暂无用户数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            users.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                
+                // 计算排名样式
+                let rankClass = 'normal';
+                if (index === 0) rankClass = 'gold';
+                else if (index === 1) rankClass = 'silver';
+                else if (index === 2) rankClass = 'bronze';
+                
+                // 计算胜率
+                const winRate = user.total_games > 0 
+                    ? Math.round((user.wins / user.total_games) * 100) + '%' 
+                    : '0%';
+                
+                tr.innerHTML = `
+                    <td>
+                        <div class="user-rank ${rankClass}">${index + 1}</div>
+                    </td>
+                    <td>
+                        <strong style="color:#e0e0e0;">${user.username}</strong>
+                    </td>
+                    <td class="coins-value">💰 ${user.coins}</td>
+                    <td class="wins-value">🏆 ${user.wins}</td>
+                    <td class="losses-value">💔 ${user.losses}</td>
+                    <td>📋 ${user.total_games}</td>
+                    <td style="color:#43e97b;">📈 ${winRate}</td>
+                    <td style="color:#888;font-size:12px;">${user.created_at || '未知'}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn edit" onclick="openEditModal('${user.username}')">
+                                💰 金币
+                            </button>
+                            <button class="action-btn add" onclick="quickAddCoins('${user.username}', 100)">
+                                +100
+                            </button>
+                            <button class="action-btn subtract" onclick="quickAddCoins('${user.username}', -50)">
+                                -50
+                            </button>
+                            <button class="action-btn reset" onclick="quickAddCoins('${user.username}', 0, true)">
+                                🔄 重置
+                            </button>
+                            <button class="action-btn delete" onclick="openDeleteModal('${user.username}')">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // ============================================
+        // 搜索筛选用户
+        // ============================================
+        function filterUsers() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (!keyword) {
+                renderTable(allUsers);
+                return;
+            }
+            
+            const filtered = allUsers.filter(user => 
+                user.username.toLowerCase().includes(keyword)
+            );
+            
+            renderTable(filtered);
+        }
+        
+        // ============================================
+        // 打开编辑金币弹窗
+        // ============================================
+        function openEditModal(username) {
+            const user = allUsers.find(u => u.username === username);
+            if (!user) return;
+            
+            currentEditUser = user;
+            
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editCurrentCoins').value = user.coins;
+            document.getElementById('editAmount').value = 100;
+            document.getElementById('editOperation').value = 'set';
+            
+            document.getElementById('editModal').classList.add('show');
+        }
+        
+        // ============================================
+        // 确认编辑金币
+        // ============================================
+        function confirmEdit() {
+            if (!currentEditUser) return;
+            
+            const username = currentEditUser.username;
+            const operation = document.getElementById('editOperation').value;
+            const amount = parseInt(document.getElementById('editAmount').value);
+            
+            if (isNaN(amount) || amount < 0) {
+                showToast('❌ 请输入有效的金额', 'error');
+                return;
+            }
+            
+            let finalAmount = amount;
+            if (operation === 'subtract') {
+                finalAmount = -amount;
+            } else if (operation === 'set') {
+                // 设置为指定值
+                fetch('/api/admin/set_coins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, coins: amount })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`✅ 已将 ${username} 的金币设置为 ${amount}`, 'success');
+                        closeModal('editModal');
+                        loadUsers();
+                    } else {
+                        showToast('❌ ' + data.message, 'error');
+                    }
+                });
+                return;
+            }
+            
+            // 增加或减少
+            fetch('/api/admin/update_coins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, amount: finalAmount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const action = finalAmount > 0 ? '增加' : '减少';
+                    showToast(`✅ 已为 ${username} ${action} ${Math.abs(finalAmount)} 金币`, 'success');
+                    closeModal('editModal');
+                    loadUsers();
+                } else {
+                    showToast('❌ ' + data.message, 'error');
+                }
+            });
+        }
+        
+        // ============================================
+        // 快速增减金币
+        // ============================================
+        function quickAddCoins(username, amount, isReset = false) {
+            if (isReset) {
+                // 重置金币为1000
+                fetch('/api/admin/set_coins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, coins: 1000 })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`✅ 已重置 ${username} 的金币为 1000`, 'success');
+                        loadUsers();
+                    } else {
+                        showToast('❌ ' + data.message, 'error');
+                    }
+                });
+                return;
+            }
+            
+            fetch('/api/admin/update_coins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, amount: amount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const action = amount > 0 ? '增加' : '减少';
+                    showToast(`✅ 已为 ${username} ${action} ${Math.abs(amount)} 金币`, 'success');
+                    loadUsers();
+                } else {
+                    showToast('❌ ' + data.message, 'error');
+                }
+            });
+        }
+        
+        // ============================================
+        // 打开删除确认弹窗
+        // ============================================
+        function openDeleteModal(username) {
+            currentDeleteUser = username;
+            document.getElementById('deleteUsername').textContent = username;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+        
+        // ============================================
+        // 确认删除用户
+        // ============================================
+        function confirmDelete() {
+            if (!currentDeleteUser) return;
+            
+            fetch('/api/admin/delete_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentDeleteUser })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ 已删除用户 ${currentDeleteUser}`, 'success');
+                    closeModal('deleteModal');
+                    loadUsers();
+                } else {
+                    showToast('❌ ' + data.message, 'error');
+                }
+            });
+        }
+        
+        // ============================================
+        // 关闭弹窗
+        // ============================================
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            currentEditUser = null;
+            currentDeleteUser = null;
+        }
+        
+        // 点击弹窗外部关闭
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('show');
+                currentEditUser = null;
+                currentDeleteUser = null;
+            }
+        });
+    </script>
+</body>
+</html>

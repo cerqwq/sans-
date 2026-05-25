@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 400px;
+            max-width: 90%;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; font-size: 28px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-size: 14px; font-weight: 500; }
+        input {
+            width: 100%; padding: 12px 15px;
+            border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 14px; transition: all 0.3s; background: #fafafa;
+        }
+        input:focus {
+            outline: none; border-color: #667eea;
+            background: white; box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        .register-btn {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #0a4a2a; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: all 0.3s; margin-top: 10px;
+        }
+        .register-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(67,233,123,0.3); }
+        .message {
+            margin-top: 20px; padding: 12px; border-radius: 10px;
+            text-align: center; display: none; font-size: 14px; font-weight: 500;
+        }
+        .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: block; }
+        .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: block; }
+        .login-link { text-align: center; margin-top: 15px; font-size: 13px; color: #888; }
+        .login-link a { color: #667eea; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 用户注册</h1>
+        
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="regUsername" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="regPassword" placeholder="请输入密码（至少6位）">
+        </div>
+        <div class="form-group">
+            <label>确认密码</label>
+            <input type="password" id="regConfirm" placeholder="请再次输入密码">
+        </div>
+        
+        <button class="register-btn" onclick="register()">注 册</button>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="login-link">
+            已有账号？<a href="/">立即登录</a>
+        </div>
+    </div>
+    
+    <script>
+        function showMessage(text, isSuccess) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message';
+            msg.classList.add(isSuccess ? 'success' : 'error');
+            msg.style.display = 'block';
+        }
+        
+        function register() {
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            
+            if (!username || !password) {
+                showMessage('用户名和密码不能为空！', false);
+                return;
+            }
+            if (password.length < 6) {
+                showMessage('密码长度至少6位！', false);
+                return;
+            }
+            if (password !== confirm) {
+                showMessage('两次密码不一致！', false);
+                return;
+            }
+            
+            fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    username: username, 
+                    password: password 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success);
+                if (data.success) {
+                    setTimeout(function() {
+                        window.location.href = '/';
+                    }, 1500);
+                }
+            })
+            .catch(error => {
+                showMessage('网络错误，请稍后重试！', false);
+                console.error('注册失败:', error);
+            });
+        }
+        
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') register();
+        });
+    </script>
+</body>
+</html>

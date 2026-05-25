@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航页面</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+        
+        .header p {
+            color: #888;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .header-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-family: inherit;
+            font-weight: 600;
+        }
+        
+        .header-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .header-btn.switch {
+            background: #667eea;
+            color: white;
+        }
+        
+        .header-btn.switch:hover {
+            background: #5a6fd6;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+        
+        .header-btn.logout {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .header-btn.logout:hover {
+            background: #ff6b81;
+            box-shadow: 0 5px 15px rgba(255,71,87,0.3);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            padding: 20px 0;
+        }
+        
+        .nav-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        
+        .nav-card .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .nav-card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .nav-card p {
+            color: #888;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .nav-card .go-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .nav-card .go-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .nav-card:nth-child(1) .go-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .nav-card:nth-child(2) .go-btn {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+        }
+        .nav-card:nth-child(3) .go-btn {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+        }
+        .nav-card:nth-child(4) .go-btn {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .header-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .nav-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>🌐 导航中心</h1>
+            <p>欢迎！请选择你选择的游戏</p>
+        </div>
+        <div class="header-actions">
+            <a href="/switch_account" class="header-btn switch">🔄 切换账号</a>
+            <a href="/logout" class="header-btn logout">退出登录</a>
+        </div>
+    </div>
+
+    <div class="nav-container">
+        
+        <div class="nav-card" onclick="goTo('/doudizhu')">
+            <div class="icon">🃏</div>
+            <h2>斗地主</h2>
+            <p>经典扑克游戏，与电脑AI对战，赢取金币！</p>
+            <button class="go-btn">开始游戏 →</button>
+        </div>
+
+        <div class="nav-card" onclick="goTo('/profile')">
+            <div class="icon">👤</div>
+            <h2>个人中心</h2>
+            <p>查看你的账号信息、游戏数据和战绩</p>
+            <button class="go-btn">查看 →</button>
+        </div>
+
+        <div class="nav-card" onclick="goTo('/admin_login')">
+            <div class="icon">⚙️</div>
+            <h2>管理后台</h2>
+            <p>管理用户数据，查看和修改金币等游戏数据</p>
+            <button class="go-btn">进入后台 →</button>
+        </div>
+
+        <div class="nav-card" onclick="goTo('/lobby')">
+            <div class="icon">🌐</div>
+            <h2>联机大厅</h2>
+            <p>创建房间或加入好友房间，在线对战</p>
+            <button class="go-btn">进入大厅 →</button>
+        </div>
+        
+    </div>
+
+    <script>
+        function goTo(url) {
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>
