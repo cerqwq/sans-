@@ -22,7 +22,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-12
 # ============================================
 # SocketIO 配置
 # ============================================
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ============================================
 # 游戏房间管理
@@ -1069,13 +1069,16 @@ def can_beat_play(new_cards, last_cards):
     return rank_values.get(new_type['rank'], 0) > rank_values.get(last_type['rank'], 0)
 
 # ============================================
-# 程序入口
+# 初始化数据库（gunicorn 导入时也会执行）
+# ============================================
+init_db()
+init_doudizhu_db()
+init_admin_db()
+
+# ============================================
+# 程序入口（本地运行用）
 # ============================================
 if __name__ == '__main__':
-    init_db()
-    init_doudizhu_db()
-    init_admin_db()
-
     print()
     print("=" * 55)
     print("  🎮 欢乐斗地主 - 服务器启动中...")
