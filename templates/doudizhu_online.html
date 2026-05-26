@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>联机斗地主</title>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -91,23 +92,7 @@
         .action-btn.no-call { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
         .action-btn.ready { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #0a4a2a; }
         .action-btn.ready.ready-active { background: linear-gradient(135deg, #888, #666); color: white; }
-        .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 700; z-index: 999; display: none; animation: toastIn 0.3s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-        .toast.show { display: block; }
-        @keyframes toastIn { 0% { transform: translateX(-50%) translateY(-20px); opacity: 0; } 100% { transform: translateX(-50%) translateY(0); opacity: 1; } }
-        .toast.info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-        .toast.success { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #0a4a2a; }
-        .toast.error { background: linear-gradient(135deg, #ff6b35, #ff4444); color: white; }
-        .toast.warning { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #8b0000; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-        .modal-overlay.show { display: flex; }
-        .modal-content { background: linear-gradient(135deg, #1a2a4a, #0d1b2a); border-radius: 24px; padding: 35px; text-align: center; border: 2px solid rgba(255,215,0,0.2); box-shadow: 0 30px 80px rgba(0,0,0,0.5); max-width: 380px; width: 90%; animation: modalIn 0.3s ease-out; }
-        @keyframes modalIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .modal-title { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
-        .modal-title.win { color: #ffd700; }
-        .modal-title.lose { color: #ff4444; }
-        .modal-subtitle { color: #aaa; margin-bottom: 20px; font-size: 14px; }
-        .modal-btn { padding: 12px 35px; border: none; border-radius: 25px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: inherit; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #8b0000; }
-        .modal-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255,215,0,0.3); }
+        /* Toast 和 Modal 使用共享样式 */
         @media (max-width: 768px) {
             .my-card { width: 45px; height: 64px; font-size: 11px; }
             .my-card .card-rank { font-size: 13px; }

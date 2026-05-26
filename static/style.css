@@ -1,0 +1,830 @@
+/* ============================================
+   斗地主 — 共享样式系统
+   深色主题 + 金色点缀
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+    --bg-dark: #0a0e14;
+    --bg-card: #12171f;
+    --bg-elevated: #1a2030;
+    --bg-input: #0f141c;
+
+    --gold: #ffd700;
+    --gold-dim: rgba(255, 215, 0, 0.12);
+    --green: #43e97b;
+    --green-dim: rgba(67, 233, 123, 0.12);
+    --red: #ff4757;
+    --red-dim: rgba(255, 71, 87, 0.12);
+    --blue: #667eea;
+    --blue-dim: rgba(102, 126, 234, 0.12);
+    --purple: #764ba2;
+
+    --text-primary: #f0ece4;
+    --text-secondary: #8a8f98;
+    --text-muted: #555d68;
+
+    --border: rgba(255, 255, 255, 0.06);
+    --border-light: rgba(255, 255, 255, 0.1);
+
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-full: 100px;
+
+    --font: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) var(--bg-dark);
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: var(--gold);
+    color: var(--bg-dark);
+}
+
+a {
+    color: var(--gold);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+a:hover { opacity: 0.8; }
+
+/* ============================================
+   页面容器（登录/注册/个人中心等）
+   ============================================ */
+.page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+        var(--bg-dark);
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 440px;
+}
+
+.card-title {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: var(--text-primary);
+}
+
+.card-title .icon {
+    display: block;
+    font-size: 2.4rem;
+    margin-bottom: 12px;
+}
+
+/* ============================================
+   表单
+   ============================================ */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    transition: all 0.3s;
+    outline: none;
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+/* ============================================
+   按钮
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 32px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+
+.btn-gold {
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    color: #1a1400;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.25);
+}
+
+.btn-gold:hover {
+    box-shadow: 0 8px 30px rgba(255, 215, 0, 0.4);
+}
+
+.btn-green {
+    background: linear-gradient(135deg, var(--green), #38f9d7);
+    color: #0a2e1a;
+    box-shadow: 0 4px 20px rgba(67, 233, 123, 0.25);
+}
+
+.btn-green:hover {
+    box-shadow: 0 8px 30px rgba(67, 233, 123, 0.4);
+}
+
+.btn-blue {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: white;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.25);
+}
+
+.btn-blue:hover {
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+}
+
+.btn-red {
+    background: linear-gradient(135deg, var(--red), #ff6b81);
+    color: white;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.btn-ghost:hover {
+    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-sm {
+    padding: 8px 20px;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   消息提示
+   ============================================ */
+.message {
+    margin-top: 20px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    display: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.message.success {
+    display: block;
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(67, 233, 123, 0.2);
+}
+
+.message.error {
+    display: block;
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+/* ============================================
+   Toast
+   ============================================ */
+.toast {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 600;
+    z-index: 9999;
+    display: none;
+    animation: toastSlide 0.3s ease-out;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+}
+
+.toast.show { display: block; }
+
+@keyframes toastSlide {
+    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.toast.info {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: white;
+}
+
+.toast.success {
+    background: linear-gradient(135deg, var(--green), #38f9d7);
+    color: #0a2e1a;
+}
+
+.toast.error {
+    background: linear-gradient(135deg, var(--red), #ff6b81);
+    color: white;
+}
+
+.toast.warning {
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    color: #1a1400;
+}
+
+/* ============================================
+   链接/辅助文字
+   ============================================ */
+.text-center { text-align: center; }
+
+.sub-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.sub-link a {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.hint {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.hint span { color: var(--gold); font-weight: 600; }
+
+/* ============================================
+   导航页卡片
+   ============================================ */
+.nav-page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(102, 126, 234, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255, 215, 0, 0.04) 0%, transparent 50%),
+        var(--bg-dark);
+}
+
+.nav-header {
+    max-width: 900px;
+    margin: 0 auto 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+}
+
+.nav-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.nav-header p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+.nav-header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-grid {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.nav-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--shadow);
+}
+
+.nav-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-lg);
+}
+
+.nav-card .card-icon {
+    font-size: 2.8rem;
+    margin-bottom: 16px;
+}
+
+.nav-card h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.nav-card p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* ============================================
+   个人中心
+   ============================================ */
+.profile-page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(102, 126, 234, 0.06) 0%, transparent 50%),
+        var(--bg-dark);
+    display: flex;
+    justify-content: center;
+}
+
+.profile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: var(--shadow);
+}
+
+.profile-card h1 {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 32px;
+}
+
+.info-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.info-section h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 16px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-label {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.info-value {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.info-value.gold { color: var(--gold); }
+.info-value.green { color: var(--green); }
+.info-value.red { color: var(--red); }
+
+/* ============================================
+   联机大厅
+   ============================================ */
+.lobby-page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background:
+        radial-gradient(ellipse at 30% 30%, rgba(255, 215, 0, 0.04) 0%, transparent 50%),
+        var(--bg-dark);
+}
+
+.lobby-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.lobby-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 32px;
+}
+
+.lobby-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.lobby-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
+.lobby-section > p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+}
+
+.lobby-section h2.green { color: var(--green); }
+.lobby-section h2.blue { color: var(--blue); }
+
+.room-code {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 10px;
+    margin: 16px 0;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.input-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.input-group .form-input {
+    width: 180px;
+    text-align: center;
+    letter-spacing: 5px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.player-list {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.player-item {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 110px;
+}
+
+.player-item .avatar { font-size: 1.8rem; margin-bottom: 6px; }
+.player-item .name { font-size: 0.85rem; color: var(--text-secondary); }
+.player-item .badge {
+    font-size: 0.7rem;
+    color: var(--gold);
+    margin-top: 4px;
+}
+
+.status-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 12px;
+}
+
+/* ============================================
+   游戏结束弹窗
+   ============================================ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(8px);
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 24px;
+    padding: 36px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    max-width: 380px;
+    width: 90%;
+    animation: modalPop 0.3s ease-out;
+}
+
+@keyframes modalPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.modal-title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+}
+
+.modal-title.win { color: var(--gold); }
+.modal-title.lose { color: var(--red); }
+
+.modal-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.modal-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.modal-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.modal-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   游戏桌面通用
+   ============================================ */
+.game-top-bar {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
+    padding: 8px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 50px;
+}
+
+.game-top-bar .back-btn {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    padding: 4px 8px;
+}
+
+.game-top-bar .game-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.game-top-bar .info-badge {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 14px;
+    border-radius: var(--radius-full);
+}
+
+/* 卡片牌桌背景 */
+.game-table {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background:
+        radial-gradient(ellipse at center, #1a7a3c 0%, #0d4a2a 50%, #082818 100%);
+    overflow: hidden;
+}
+
+.game-table::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* 玩家头像 */
+.p-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.p-avatar.ai { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.p-avatar.me { background: linear-gradient(135deg, var(--blue), var(--purple)); }
+
+.p-avatar.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.p-avatar.landlord { border-color: var(--gold); }
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+}
+
+/* 扑克牌 */
+.card-face {
+    background: white;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card-face .c-rank { line-height: 1; }
+.card-face .c-suit { line-height: 1; }
+.card-face.red { color: #d32f2f; }
+.card-face.black { color: #212121; }
+
+/* 游戏按钮 */
+.g-btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 20px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.g-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.g-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.g-btn-play {
+    background: linear-gradient(135deg, #ff6b35, #ff4444);
+    color: white;
+}
+
+.g-btn-pass {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: white;
+}
+
+.g-btn-hint {
+    background: linear-gradient(135deg, var(--green), #38f9d7);
+    color: #0a4a2a;
+}
+
+.g-btn-new {
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    color: #1a1400;
+}
+
+.g-btn-call {
+    background: linear-gradient(135deg, #ff6b35, #ff4444);
+    color: white;
+}
+
+.g-btn-nocall {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: white;
+}
+
+.g-btn-ready {
+    background: linear-gradient(135deg, var(--green), #38f9d7);
+    color: #0a4a2a;
+}
+
+.g-btn-ready.active {
+    background: linear-gradient(135deg, #555, #444);
+    color: white;
+}
+
+/* ============================================
+   响应式
+   ============================================ */
+@media (max-width: 600px) {
+    .nav-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+
+    .nav-header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .nav-header-actions .btn { width: 100%; }
+
+    .nav-grid { grid-template-columns: 1fr; }
+
+    .input-group { flex-direction: column; }
+    .input-group .form-input { width: 100%; }
+}
