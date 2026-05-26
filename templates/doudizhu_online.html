@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>联机斗地主</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body>
     <div class="toast-container"><div class="toast" id="toast"></div></div>
@@ -16,6 +17,7 @@
         </div>
         <div class="top-bar-right">
             <span class="badge" id="roomInfo">房间: 加载中...</span>
+            <span class="badge" id="connStatus" style="color:var(--green);">● 已连接</span>
         </div>
     </div>
 
@@ -80,12 +82,34 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script>
-    const socket = io();
+    const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000, reconnectionDelayMax: 5000 });
     const params = new URLSearchParams(window.location.search);
     const roomCode = params.get('room');
     let myCards=[], myPos=-1, players=[], selected=[], myTurn=false, isReady=false;
 
     document.getElementById('roomInfo').textContent = `房间: ${roomCode||'未知'}`;
+
+    // 连接状态
+    socket.on('connect', () => {
+        document.getElementById('connStatus').textContent = '● 已连接';
+        document.getElementById('connStatus').style.color = 'var(--green)';
+        // 重连时重新加入房间
+        if(roomCode){
+            fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+                if(d.success) socket.emit('join_game',{room_code:roomCode,username:d.data.username});
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        document.getElementById('connStatus').textContent = '○ 断开';
+        document.getElementById('connStatus').style.color = 'var(--red)';
+        showToast('⚠️ 连接断开，正在重连...','warning');
+    });
+
+    socket.on('reconnect', () => {
+        showToast('✅ 已重新连接','success');
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/get_user_data').then(r=>r.json()).then(d=>{

@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>联机大厅</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
-<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+<body class="lobby-bg">
     <div class="page-wrapper" style="max-width:700px;">
-        <h1 style="text-align:center;color:var(--gold);font-size:28px;margin-bottom:28px;">🎮 联机大厅</h1>
+        <h1 class="nav-header-title" style="text-align:center;font-size:28px;margin-bottom:28px;">🎮 联机大厅</h1>
 
         <div class="lobby-section" id="createSection">
             <h2 style="color:var(--green);">🏠 创建房间</h2>
@@ -43,7 +44,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script>
-        const socket = io();
+        const socket = io({ reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 1000 });
         let currentRoom = null, isHost = false, busy = false;
 
         function getUsername() {
@@ -87,6 +88,17 @@
 
         socket.on('player_left', d => {});
         socket.on('error', d => { alert(d.message); busy = false; });
+
+        socket.on('disconnect', () => {
+            document.getElementById('waitStatus').textContent = '⚠️ 连接断开，正在重连...';
+        });
+
+        socket.on('connect', () => {
+            if (currentRoom) {
+                document.getElementById('waitStatus').textContent = '已重新连接';
+                socket.emit('join_room', {room_code: currentRoom, username: getUsername()});
+            }
+        });
 
         function updatePlayers(players) {
             const list = document.getElementById('playerList');

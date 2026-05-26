@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人中心</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
-<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+<body class="lobby-bg">
     <div class="page-wrapper" style="max-width:520px;">
         <div class="info-header">
             <h1>👤 个人中心</h1>
@@ -52,8 +53,13 @@
             </div>
         </div>
 
-        <div style="text-align:center;margin-top:24px;">
-            <a href="/nav" class="btn btn-ghost">← 返回导航</a>
+        <div class="info-section">
+            <div class="info-section-title">🚀 快速跳转</div>
+            <div class="profile-nav-grid">
+                <a href="/nav" class="btn btn-ghost">🏠 导航中心</a>
+                <a href="/doudizhu" class="btn btn-blue">🃏 单机斗地主</a>
+                <a href="/lobby" class="btn btn-green">🌐 联机大厅</a>
+            </div>
         </div>
     </div>
 

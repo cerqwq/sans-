@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>导航中心</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
-<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+<body class="lobby-bg">
     <div class="page-wrapper">
-        <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+        <div class="card nav-header">
             <div>
-                <h1 style="font-size:24px;">🌐 导航中心</h1>
-                <p style="color:var(--text-dim);font-size:13px;margin-top:4px;">欢迎，{{ username }}！选择你要玩的游戏</p>
+                <h1 class="nav-header-title">🌐 导航中心</h1>
+                <p class="nav-header-sub">欢迎，{{ username }}！选择你要玩的游戏</p>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div class="nav-header-actions">
                 <a href="/switch_account" class="btn btn-ghost btn-sm">切换账号</a>
                 <a href="/logout" class="btn btn-red btn-sm">退出</a>
             </div>
