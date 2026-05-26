@@ -10,8 +10,8 @@
     --bg-felt: #0d3a1a;
     --bg-felt-light: #1a6b35;
     --bg-card: #132a1c;
-    --bg-surface: rgba(255,255,255,0.04);
-    --bg-surface-hover: rgba(255,255,255,0.08);
+    --bg-surface: rgba(255,255,255,0.07);
+    --bg-surface-hover: rgba(255,255,255,0.12);
     --gold: #ffd700;
     --gold-dark: #b8960f;
     --green: #43e97b;
@@ -23,8 +23,8 @@
     --text: #e8e8e8;
     --text-dim: rgba(255,255,255,0.6);
     --text-muted: rgba(255,255,255,0.35);
-    --border: rgba(255,255,255,0.08);
-    --border-gold: rgba(255,215,0,0.25);
+    --border: rgba(255,255,255,0.12);
+    --border-gold: rgba(255,215,0,0.3);
     --shadow: 0 8px 32px rgba(0,0,0,0.4);
     --shadow-gold: 0 4px 20px rgba(255,215,0,0.15);
     --radius: 12px;
