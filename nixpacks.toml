@@ -8,4 +8,4 @@ cmds = ["pip install -r requirements.txt"]
 cmds = []
 
 [start]
-cmd = "python test_app.py"
+cmd = "python app.py"

@@ -3,73 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人中心 — 欢乐斗地主</title>
+    <title>个人中心</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <div class="profile-page">
-        <div class="profile-card">
-            <h1>&#x1f464; 个人中心</h1>
+<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+    <div class="page-wrapper" style="max-width:520px;">
+        <div class="info-header">
+            <h1>👤 个人中心</h1>
+        </div>
 
-            <div class="info-section">
-                <h2>&#x1f4cb; 账号信息</h2>
-                <div class="info-row">
-                    <span class="info-label">用户名</span>
-                    <span class="info-value" id="username">加载中...</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">注册时间</span>
-                    <span class="info-value" id="createdAt">加载中...</span>
-                </div>
+        <div class="info-section">
+            <div class="info-section-title">📋 账号信息</div>
+            <div class="info-row">
+                <span class="info-label">用户名</span>
+                <span class="info-value" id="username">加载中...</span>
             </div>
-
-            <div class="info-section">
-                <h2>&#x1f0cf; 游戏数据</h2>
-                <div class="info-row">
-                    <span class="info-label">&#x1f4b0; 金币</span>
-                    <span class="info-value gold" id="coins">0</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">&#x1f3c6; 胜利</span>
-                    <span class="info-value green" id="wins">0</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">&#x1f494; 失败</span>
-                    <span class="info-value red" id="losses">0</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">&#x1f91d; 平局</span>
-                    <span class="info-value" id="draws">0</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">&#x1f4cb; 总场数</span>
-                    <span class="info-value" id="totalGames">0</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">&#x1f4c8; 胜率</span>
-                    <span class="info-value green" id="winRate">0%</span>
-                </div>
+            <div class="info-row">
+                <span class="info-label">注册时间</span>
+                <span class="info-value" id="createdAt">-</span>
             </div>
+        </div>
 
-            <a href="/nav" class="btn btn-blue btn-block" style="margin-top:24px;">&larr; 返回导航</a>
+        <div class="info-section">
+            <div class="info-section-title">🃏 游戏数据</div>
+            <div class="info-row">
+                <span class="info-label">💰 金币</span>
+                <span class="info-value gold" id="coins">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">🏆 胜利</span>
+                <span class="info-value green" id="wins">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">💔 失败</span>
+                <span class="info-value red" id="losses">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">🤝 平局</span>
+                <span class="info-value" id="draws">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">📋 总场数</span>
+                <span class="info-value" id="totalGames">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">📈 胜率</span>
+                <span class="info-value green" id="winRate">0%</span>
+            </div>
+        </div>
+
+        <div style="text-align:center;margin-top:24px;">
+            <a href="/nav" class="btn btn-ghost">← 返回导航</a>
         </div>
     </div>
 
     <script>
         fetch('/api/get_user_data')
             .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const d = data.data;
-                    document.getElementById('username').textContent = d.username;
-                    document.getElementById('createdAt').textContent = d.created_at;
-                    document.getElementById('coins').textContent = d.coins;
-                    document.getElementById('wins').textContent = d.wins;
-                    document.getElementById('losses').textContent = d.losses;
-                    document.getElementById('draws').textContent = d.draws;
-                    document.getElementById('totalGames').textContent = d.total_games;
+            .then(d => {
+                if (d.success) {
+                    const u = d.data;
+                    document.getElementById('username').textContent = u.username;
+                    document.getElementById('createdAt').textContent = u.created_at;
+                    document.getElementById('coins').textContent = u.coins;
+                    document.getElementById('wins').textContent = u.wins;
+                    document.getElementById('losses').textContent = u.losses;
+                    document.getElementById('draws').textContent = u.draws;
+                    document.getElementById('totalGames').textContent = u.total_games;
                     document.getElementById('winRate').textContent =
-                        d.total_games > 0 ? Math.round((d.wins / d.total_games) * 100) + '%' : '0%';
+                        u.total_games > 0 ? Math.round(u.wins / u.total_games * 100) + '%' : '0%';
                 }
             });
     </script>

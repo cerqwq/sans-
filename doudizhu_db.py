@@ -1,6 +1,6 @@
 """
-斗地主数据库操作模块
-管理斗地主游戏相关的数据，确保不同账号数据独立
+斗地主数据库模块
+上下文管理器模式，统一连接管理
 """
 
 import sqlite3
@@ -13,7 +13,6 @@ DB_PATH = 'database.db'
 
 @contextmanager
 def get_db():
-    """数据库连接上下文管理器，自动提交/回滚/关闭"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
@@ -26,8 +25,17 @@ def get_db():
         conn.close()
 
 
-def init_doudizhu_db():
+def init_db():
+    """初始化所有表"""
     with get_db() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS doudizhu_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,11 +50,6 @@ def init_doudizhu_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-    print("斗地主数据库初始化成功")
-
-
-def init_admin_db():
-    with get_db() as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,51 +58,68 @@ def init_admin_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-    print("管理员数据库初始化成功")
+    print("[DB] 数据库初始化完成")
 
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+# ============================================
+# 用户操作
+# ============================================
+
+def create_user(username, password):
+    """创建用户账号"""
+    hashed = hash_password(password)
+    try:
+        with get_db() as conn:
+            conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
+            conn.execute('''
+                INSERT INTO doudizhu_data (username, coins, wins, losses, draws, total_games)
+                VALUES (?, 1000, 0, 0, 0, 0)
+            ''', (username,))
+        return True, '注册成功！'
+    except sqlite3.IntegrityError:
+        return False, '用户名已存在！'
+
+
+def verify_user(username, password):
+    """验证用户登录"""
+    hashed = hash_password(password)
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT 1 FROM users WHERE username = ? AND password = ?',
+            (username, hashed)
+        ).fetchone()
+    return row is not None
+
+
+def ensure_user_data(username):
+    """确保用户有游戏数据"""
+    with get_db() as conn:
+        exists = conn.execute(
+            'SELECT 1 FROM doudizhu_data WHERE username = ?', (username,)
+        ).fetchone()
+        if not exists:
+            conn.execute('''
+                INSERT INTO doudizhu_data (username, coins, wins, losses, draws, total_games)
+                VALUES (?, 1000, 0, 0, 0, 0)
+            ''', (username,))
+
+
+# ============================================
+# 游戏数据操作
+# ============================================
 
 def get_user_data(username):
     with get_db() as conn:
         row = conn.execute(
             'SELECT * FROM doudizhu_data WHERE username = ?', (username,)
         ).fetchone()
-
     if row:
-        return {
-            'id': row['id'],
-            'username': row['username'],
-            'coins': row['coins'],
-            'wins': row['wins'],
-            'losses': row['losses'],
-            'draws': row['draws'],
-            'total_games': row['total_games'],
-            'current_game': row['current_game'],
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at']
-        }
+        return dict(row)
     return None
-
-
-def create_user_doudizhu_data(username):
-    try:
-        with get_db() as conn:
-            conn.execute('''
-                INSERT INTO doudizhu_data (username, coins, wins, losses, draws, total_games)
-                VALUES (?, 1000, 0, 0, 0, 0)
-            ''', (username,))
-        return True
-    except sqlite3.IntegrityError:
-        return False
-
-
-def update_coins(username, amount):
-    with get_db() as conn:
-        conn.execute('''
-            UPDATE doudizhu_data
-            SET coins = coins + ?, updated_at = CURRENT_TIMESTAMP
-            WHERE username = ?
-        ''', (amount, username))
-    return True
 
 
 def update_game_result(username, result):
@@ -125,63 +145,41 @@ def update_game_result(username, result):
                     updated_at = CURRENT_TIMESTAMP
                 WHERE username = ?
             ''', (username,))
-    return True
 
 
-def save_game_state(username, game_state):
+def update_coins(username, amount):
     with get_db() as conn:
         conn.execute('''
             UPDATE doudizhu_data
-            SET current_game = ?, updated_at = CURRENT_TIMESTAMP
+            SET coins = coins + ?, updated_at = CURRENT_TIMESTAMP
             WHERE username = ?
-        ''', (json.dumps(game_state), username))
-    return True
+        ''', (amount, username))
 
 
-def get_game_state(username):
-    with get_db() as conn:
-        row = conn.execute(
-            'SELECT current_game FROM doudizhu_data WHERE username = ?', (username,)
-        ).fetchone()
-
-    if row and row['current_game']:
-        return json.loads(row['current_game'])
-    return None
-
-
-def clear_game_state(username):
+def set_coins(username, coins):
     with get_db() as conn:
         conn.execute('''
             UPDATE doudizhu_data
-            SET current_game = NULL, updated_at = CURRENT_TIMESTAMP
+            SET coins = ?, updated_at = CURRENT_TIMESTAMP
             WHERE username = ?
-        ''', (username,))
-    return True
+        ''', (coins, username))
 
 
 def get_leaderboard(limit=10):
     with get_db() as conn:
         rows = conn.execute('''
             SELECT username, coins, wins, total_games
-            FROM doudizhu_data
-            ORDER BY coins DESC
-            LIMIT ?
+            FROM doudizhu_data ORDER BY coins DESC LIMIT ?
         ''', (limit,)).fetchall()
+    return [dict(r) for r in rows]
 
-    return [
-        {
-            'rank': i + 1,
-            'username': row['username'],
-            'coins': row['coins'],
-            'wins': row['wins'],
-            'total_games': row['total_games']
-        }
-        for i, row in enumerate(rows)
-    ]
 
+# ============================================
+# 管理员操作
+# ============================================
 
 def check_admin(username, password):
-    hashed = hashlib.sha256(password.encode()).hexdigest()
+    hashed = hash_password(password)
     with get_db() as conn:
         row = conn.execute(
             'SELECT 1 FROM admins WHERE username = ? AND password = ?',
@@ -191,13 +189,42 @@ def check_admin(username, password):
 
 
 def create_admin(username, password):
-    hashed = hashlib.sha256(password.encode()).hexdigest()
+    hashed = hash_password(password)
     try:
         with get_db() as conn:
-            conn.execute(
-                'INSERT INTO admins (username, password) VALUES (?, ?)',
-                (username, hashed)
-            )
+            conn.execute('INSERT INTO admins (username, password) VALUES (?, ?)', (username, hashed))
         return True
     except sqlite3.IntegrityError:
         return False
+
+
+def get_all_users():
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT u.id, u.username, u.created_at,
+                   d.coins, d.wins, d.losses, d.draws, d.total_games
+            FROM users u
+            LEFT JOIN doudizhu_data d ON u.username = d.username
+            ORDER BY d.coins DESC
+        ''').fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_user(username):
+    with get_db() as conn:
+        conn.execute('DELETE FROM doudizhu_data WHERE username = ?', (username,))
+        conn.execute('DELETE FROM users WHERE username = ?', (username,))
+
+
+def add_user_by_admin(username, password, coins=1000):
+    hashed = hash_password(password)
+    try:
+        with get_db() as conn:
+            conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
+            conn.execute('''
+                INSERT INTO doudizhu_data (username, coins, wins, losses, draws, total_games)
+                VALUES (?, ?, 0, 0, 0, 0)
+            ''', (username, coins))
+        return True, f'用户 {username} 添加成功！'
+    except sqlite3.IntegrityError:
+        return False, '用户名已存在！'

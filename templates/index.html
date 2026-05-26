@@ -3,75 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 — 欢乐斗地主</title>
+    <title>斗地主 - 登录</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="page-wrapper">
-        <div class="card">
-            <div class="card-title">
-                <span class="icon">&#x1f510;</span>
-                用户登录
-            </div>
+    <div class="page-center">
+        <div class="card" style="width:380px;max-width:90%;">
+            <h1 style="text-align:center;font-size:26px;margin-bottom:6px;">🃏 欢乐斗地主</h1>
+            <p style="text-align:center;color:var(--text-dim);font-size:13px;margin-bottom:28px;">登录你的账号开始游戏</p>
 
             <div class="form-group">
                 <label class="form-label">账号</label>
-                <input type="text" id="username" class="form-input" placeholder="请输入账号" autocomplete="username">
+                <input type="text" class="form-input" id="username" placeholder="请输入账号" autocomplete="username">
             </div>
-
             <div class="form-group">
                 <label class="form-label">密码</label>
-                <input type="password" id="password" class="form-input" placeholder="请输入密码" autocomplete="current-password">
+                <input type="password" class="form-input" id="password" placeholder="请输入密码" autocomplete="current-password">
             </div>
 
-            <button class="btn btn-gold btn-block" onclick="login()">登 录</button>
+            <button class="btn btn-blue btn-block btn-lg" onclick="login()">登 录</button>
 
-            <div class="sub-link">
-                还没有账号？<a href="/register_page">立即注册</a>
+            <div style="text-align:center;margin-top:16px;">
+                <span style="color:var(--text-muted);font-size:13px;">还没有账号？</span>
+                <a href="/register_page" style="color:var(--blue);font-size:13px;text-decoration:none;font-weight:600;">立即注册</a>
             </div>
 
-            <div class="hint">
-                登录后会自动打开新标签页，<span>可继续登录其他账号</span>
-            </div>
-
-            <div id="message" class="message"></div>
+            <div id="msg" class="toast" style="position:static;margin-top:16px;display:none;transform:none;"></div>
         </div>
     </div>
 
     <script>
-        function showMessage(text, isSuccess) {
-            const msg = document.getElementById('message');
-            msg.textContent = text;
-            msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'toast show ' + (ok ? 'success' : 'error');
+            el.style.display = 'block';
         }
 
         function login() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            if (!username || !password) {
-                showMessage('请输入账号和密码！', false);
-                return;
-            }
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            if (!u || !p) { showMsg('请输入账号和密码！', false); return; }
 
             fetch('/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p})
             })
             .then(r => r.json())
-            .then(data => {
-                showMessage(data.message, data.success);
-                if (data.success) {
+            .then(d => {
+                showMsg(d.message, d.success);
+                if (d.success) {
                     setTimeout(() => {
                         window.open('/nav', '_blank');
                         document.getElementById('username').value = '';
                         document.getElementById('password').value = '';
-                        showMessage('登录成功！已在新标签页打开', true);
+                        document.getElementById('msg').style.display = 'none';
                     }, 500);
                 }
             })
-            .catch(() => showMessage('网络错误，请稍后重试！', false));
+            .catch(() => showMsg('网络错误！', false));
         }
 
         document.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });

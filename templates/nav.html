@@ -3,49 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>导航 — 欢乐斗地主</title>
+    <title>导航中心</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <div class="nav-page">
-        <div class="nav-header">
+<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+    <div class="page-wrapper">
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
             <div>
-                <h1>&#x1f310; 导航中心</h1>
-                <p>请选择你要进入的功能</p>
+                <h1 style="font-size:24px;">🌐 导航中心</h1>
+                <p style="color:var(--text-dim);font-size:13px;margin-top:4px;">欢迎，{{ username }}！选择你要玩的游戏</p>
             </div>
-            <div class="nav-header-actions">
+            <div style="display:flex;gap:8px;">
                 <a href="/switch_account" class="btn btn-ghost btn-sm">切换账号</a>
-                <a href="/logout" class="btn btn-red btn-sm">退出登录</a>
+                <a href="/logout" class="btn btn-red btn-sm">退出</a>
             </div>
         </div>
 
         <div class="nav-grid">
             <div class="nav-card" onclick="location.href='/doudizhu'">
-                <div class="card-icon">&#x1f0cf;</div>
-                <h2>斗地主</h2>
-                <p>经典扑克游戏，与电脑 AI 对战，赢取金币</p>
-                <button class="btn btn-blue btn-sm">开始游戏 &rarr;</button>
+                <div class="nav-card-icon">🃏</div>
+                <div class="nav-card-title">单机斗地主</div>
+                <div class="nav-card-desc">与电脑AI对战，赢取金币！</div>
+                <button class="btn btn-blue btn-sm" style="margin-top:16px;">开始游戏 →</button>
             </div>
-
             <div class="nav-card" onclick="location.href='/lobby'">
-                <div class="card-icon">&#x1f310;</div>
-                <h2>联机大厅</h2>
-                <p>创建房间或加入好友房间，在线实时对战</p>
-                <button class="btn btn-green btn-sm">进入大厅 &rarr;</button>
+                <div class="nav-card-icon">🌐</div>
+                <div class="nav-card-title">联机大厅</div>
+                <div class="nav-card-desc">创建或加入房间，在线对战</div>
+                <button class="btn btn-green btn-sm" style="margin-top:16px;">进入大厅 →</button>
             </div>
-
             <div class="nav-card" onclick="location.href='/profile'">
-                <div class="card-icon">&#x1f464;</div>
-                <h2>个人中心</h2>
-                <p>查看账号信息、游戏数据和战绩统计</p>
-                <button class="btn btn-gold btn-sm">查看 &rarr;</button>
+                <div class="nav-card-icon">👤</div>
+                <div class="nav-card-title">个人中心</div>
+                <div class="nav-card-desc">查看战绩、金币和统计数据</div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:16px;">查看 →</button>
             </div>
-
             <div class="nav-card" onclick="location.href='/admin_login'">
-                <div class="card-icon">&#x2699;&#xfe0f;</div>
-                <h2>管理后台</h2>
-                <p>管理用户数据，查看和修改金币等游戏数据</p>
-                <button class="btn btn-ghost btn-sm">进入后台 &rarr;</button>
+                <div class="nav-card-icon">⚙️</div>
+                <div class="nav-card-title">管理后台</div>
+                <div class="nav-card-desc">管理用户数据和游戏设置</div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:16px;">进入 →</button>
             </div>
         </div>
     </div>

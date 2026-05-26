@@ -3,72 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>联机大厅 — 欢乐斗地主</title>
+    <title>联机大厅</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <div class="lobby-page">
-        <div class="lobby-container">
-            <h1 class="lobby-title">&#x1f3ae; 联机大厅</h1>
+<body style="background:linear-gradient(135deg,#0d1b2a,#1a2a4a);">
+    <div class="page-wrapper" style="max-width:700px;">
+        <h1 style="text-align:center;color:var(--gold);font-size:28px;margin-bottom:28px;">🎮 联机大厅</h1>
 
-            <div class="lobby-section" id="createRoomSection">
-                <h2 class="green">&#x1f3e0; 创建房间</h2>
-                <p>创建一个新房间，邀请好友一起玩</p>
-                <button class="btn btn-green" onclick="createRoom()">创建房间</button>
-            </div>
+        <div class="lobby-section" id="createSection">
+            <h2 style="color:var(--green);">🏠 创建房间</h2>
+            <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">创建新房间，邀请好友一起玩</p>
+            <button class="btn btn-green" onclick="createRoom()">创建房间</button>
+        </div>
 
-            <div class="lobby-section" id="joinRoomSection">
-                <h2 class="blue">&#x1f511; 加入房间</h2>
-                <p>输入好友的房间码加入游戏</p>
-                <div class="input-group">
-                    <input type="text" id="roomCodeInput" class="form-input" placeholder="输入房间码" maxlength="6"
-                           oninput="this.value = this.value.toUpperCase()">
-                    <button class="btn btn-blue" onclick="joinRoom()">加入</button>
-                </div>
+        <div class="lobby-section" id="joinSection">
+            <h2 style="color:var(--blue);">🔑 加入房间</h2>
+            <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">输入房间码加入游戏</p>
+            <div style="display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;">
+                <input type="text" class="form-input" id="roomCodeInput" placeholder="输入房间码"
+                       maxlength="6" style="width:180px;text-align:center;font-size:18px;letter-spacing:5px;"
+                       oninput="this.value=this.value.toUpperCase()">
+                <button class="btn btn-blue" onclick="joinRoom()">加入</button>
             </div>
+        </div>
 
-            <div class="lobby-section hidden" id="waitingRoomSection">
-                <h2>&#x1f550; 等待玩家加入</h2>
-                <p>分享房间码给好友：</p>
-                <div class="room-code" id="roomCodeDisplay">------</div>
-                <div class="player-list" id="playerList"></div>
-                <p class="status-text" id="waitingStatus">等待其他玩家加入...</p>
-                <button class="btn btn-gold" id="startGameBtn" onclick="startGame()" style="display:none;margin-top:16px;">
-                    &#x1f3ae; 进入游戏
-                </button>
-            </div>
+        <div class="lobby-section hidden" id="waitingSection">
+            <h2>🕐 等待玩家加入</h2>
+            <p style="color:var(--text-dim);font-size:13px;">分享房间码给好友：</p>
+            <div class="room-code" id="roomCodeDisplay">------</div>
+            <div class="player-list" id="playerList"></div>
+            <p style="color:var(--text-muted);font-size:13px;" id="waitStatus">等待其他玩家加入...</p>
+            <button class="btn btn-gold hidden" id="startBtn" onclick="startGame()">🎮 进入游戏</button>
+        </div>
 
-            <div style="text-align:center;margin-top:24px;">
-                <a href="/nav" class="btn btn-ghost">&larr; 返回导航</a>
-            </div>
+        <div style="text-align:center;margin-top:24px;">
+            <a href="/nav" class="btn btn-ghost">← 返回导航</a>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script>
         const socket = io();
-        let currentRoom = null;
-        let isHost = false;
-        let isJoining = false;
+        let currentRoom = null, isHost = false, busy = false;
 
         function getUsername() {
             return document.getElementById('usernameDisplay')?.textContent || '玩家';
         }
 
         function createRoom() {
-            if (isJoining) return;
-            isJoining = true;
-            socket.emit('create_room', { username: getUsername() });
-            setTimeout(() => isJoining = false, 3000);
+            if (busy) return; busy = true;
+            socket.emit('create_room', {username: getUsername()});
+            setTimeout(() => busy = false, 3000);
         }
 
         function joinRoom() {
-            if (isJoining) return;
+            if (busy) return;
             const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
             if (code.length < 4) { alert('请输入有效的房间码'); return; }
-            isJoining = true;
-            socket.emit('join_room', { room_code: code, username: getUsername() });
-            setTimeout(() => isJoining = false, 3000);
+            busy = true;
+            socket.emit('join_room', {room_code: code, username: getUsername()});
+            setTimeout(() => busy = false, 3000);
         }
 
         function startGame() {
@@ -76,63 +70,49 @@
             window.location.href = '/doudizhu_online?room=' + currentRoom;
         }
 
-        socket.on('room_created', function(data) {
-            currentRoom = data.room_code;
-            isHost = true;
-            document.getElementById('createRoomSection').classList.add('hidden');
-            document.getElementById('joinRoomSection').classList.add('hidden');
-            document.getElementById('waitingRoomSection').classList.remove('hidden');
-            document.getElementById('roomCodeDisplay').textContent = data.room_code;
-            updatePlayerList(data.players);
-            document.getElementById('startGameBtn').style.display = 'inline-block';
+        socket.on('room_created', d => {
+            currentRoom = d.room_code; isHost = true;
+            document.getElementById('createSection').classList.add('hidden');
+            document.getElementById('joinSection').classList.add('hidden');
+            document.getElementById('waitingSection').classList.remove('hidden');
+            document.getElementById('roomCodeDisplay').textContent = d.room_code;
+            updatePlayers(d.players);
+            document.getElementById('startBtn').classList.remove('hidden');
         });
 
-        socket.on('player_joined', function(data) {
-            updatePlayerList(data.players);
-            if (!isHost && currentRoom) {
-                document.getElementById('startGameBtn').style.display = 'inline-block';
-            }
+        socket.on('player_joined', d => {
+            updatePlayers(d.players);
+            document.getElementById('startBtn').classList.remove('hidden');
         });
 
-        socket.on('player_left', function() {});
-        socket.on('error', function(data) { alert(data.message); isJoining = false; });
+        socket.on('player_left', d => {});
+        socket.on('error', d => { alert(d.message); busy = false; });
 
-        function updatePlayerList(players) {
+        function updatePlayers(players) {
             const list = document.getElementById('playerList');
             list.innerHTML = '';
             players.forEach((p, i) => {
-                const div = document.createElement('div');
-                div.className = 'player-item';
-                div.innerHTML = `
-                    <div class="avatar">${i === 0 ? '&#x1f451;' : '&#x1f464;'}</div>
-                    <div class="name">${p.username}</div>
-                    ${i === 0 ? '<div class="badge">房主</div>' : ''}
-                `;
-                list.appendChild(div);
+                list.innerHTML += `<div class="player-item">
+                    <div class="player-item-avatar">${i===0?'👑':'👤'}</div>
+                    <div class="player-item-name">${p.username}</div>
+                    ${i===0?'<div class="player-item-badge">房主</div>':''}
+                </div>`;
             });
-
-            const status = document.getElementById('waitingStatus');
-            if (players.length >= 3) {
-                status.textContent = '✅ 玩家已满，点击「进入游戏」开始准备！';
-            } else if (players.length >= 2) {
-                status.textContent = `已有 ${players.length}/3 名玩家`;
-            } else {
-                status.textContent = '等待其他玩家加入...';
-            }
+            const s = document.getElementById('waitStatus');
+            if (players.length >= 3) s.textContent = '✅ 玩家已满，点击进入游戏！';
+            else if (players.length >= 2) s.textContent = `已有 ${players.length}/3 名玩家`;
+            else s.textContent = '等待其他玩家加入...';
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('/api/get_user_data')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        const span = document.createElement('span');
-                        span.id = 'usernameDisplay';
-                        span.style.display = 'none';
-                        span.textContent = data.data.username;
-                        document.body.appendChild(span);
-                    }
-                });
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+                if (d.success) {
+                    const s = document.createElement('span');
+                    s.id='usernameDisplay'; s.style.display='none';
+                    s.textContent=d.data.username;
+                    document.body.appendChild(s);
+                }
+            });
         });
     </script>
 </body>

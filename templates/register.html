@@ -3,69 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册 — 欢乐斗地主</title>
+    <title>斗地主 - 注册</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="page-wrapper">
-        <div class="card">
-            <div class="card-title">
-                <span class="icon">&#x1f4dd;</span>
-                用户注册
-            </div>
+    <div class="page-center">
+        <div class="card" style="width:380px;max-width:90%;">
+            <h1 style="text-align:center;font-size:26px;margin-bottom:28px;">📝 用户注册</h1>
 
             <div class="form-group">
                 <label class="form-label">用户名</label>
-                <input type="text" id="regUsername" class="form-input" placeholder="请输入用户名">
+                <input type="text" class="form-input" id="regUsername" placeholder="请输入用户名">
             </div>
-
             <div class="form-group">
                 <label class="form-label">密码</label>
-                <input type="password" id="regPassword" class="form-input" placeholder="请输入密码（至少6位）">
+                <input type="password" class="form-input" id="regPassword" placeholder="至少6位">
             </div>
-
             <div class="form-group">
                 <label class="form-label">确认密码</label>
-                <input type="password" id="regConfirm" class="form-input" placeholder="请再次输入密码">
+                <input type="password" class="form-input" id="regConfirm" placeholder="再次输入密码">
             </div>
 
-            <button class="btn btn-green btn-block" onclick="register()">注 册</button>
+            <button class="btn btn-green btn-block btn-lg" onclick="register()">注 册</button>
 
-            <div id="message" class="message"></div>
-
-            <div class="sub-link">
-                已有账号？<a href="/">立即登录</a>
+            <div style="text-align:center;margin-top:16px;">
+                <span style="color:var(--text-muted);font-size:13px;">已有账号？</span>
+                <a href="/" style="color:var(--blue);font-size:13px;text-decoration:none;font-weight:600;">立即登录</a>
             </div>
+
+            <div id="msg" class="toast" style="position:static;margin-top:16px;display:none;transform:none;"></div>
         </div>
     </div>
 
     <script>
-        function showMessage(text, isSuccess) {
-            const msg = document.getElementById('message');
-            msg.textContent = text;
-            msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'toast show ' + (ok ? 'success' : 'error');
+            el.style.display = 'block';
         }
 
         function register() {
-            const username = document.getElementById('regUsername').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const confirm = document.getElementById('regConfirm').value;
+            const u = document.getElementById('regUsername').value.trim();
+            const p = document.getElementById('regPassword').value;
+            const c = document.getElementById('regConfirm').value;
 
-            if (!username || !password) { showMessage('用户名和密码不能为空！', false); return; }
-            if (password.length < 6) { showMessage('密码长度至少6位！', false); return; }
-            if (password !== confirm) { showMessage('两次密码不一致！', false); return; }
+            if (!u || !p) { showMsg('用户名和密码不能为空！', false); return; }
+            if (p.length < 6) { showMsg('密码长度至少6位！', false); return; }
+            if (p !== c) { showMsg('两次密码不一致！', false); return; }
 
             fetch('/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p})
             })
             .then(r => r.json())
-            .then(data => {
-                showMessage(data.message, data.success);
-                if (data.success) setTimeout(() => window.location.href = '/', 1500);
+            .then(d => {
+                showMsg(d.message, d.success);
+                if (d.success) setTimeout(() => window.location.href = '/', 1500);
             })
-            .catch(() => showMessage('网络错误，请稍后重试！', false));
+            .catch(() => showMsg('网络错误！', false));
         }
 
         document.addEventListener('keypress', e => { if (e.key === 'Enter') register(); });
