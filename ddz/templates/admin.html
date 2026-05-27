@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+</head>
+<body class="lobby-bg">
+    <div class="page-wrapper">
+        <div class="admin-header">
+            <h1>⚙️ 管理后台</h1>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="loadUsers()">🔄 刷新</button>
+                <a href="/nav" class="btn btn-ghost btn-sm">← 返回</a>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="totalUsers">0</div><div class="stat-label">总用户数</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalCoins">0</div><div class="stat-label">总金币</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalGames">0</div><div class="stat-label">总游戏数</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+            <h3 style="color:var(--green);margin-bottom:14px;">➕ 添加用户</h3>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" class="form-input" id="addUsername" placeholder="用户名" style="width:150px;">
+                <input type="password" class="form-input" id="addPassword" placeholder="密码" style="width:150px;">
+                <input type="number" class="form-input" id="addCoins" placeholder="金币" value="1000" style="width:120px;">
+                <button class="btn btn-green btn-sm" onclick="addUser()">添加</button>
+            </div>
+        </div>
+
+        <div class="card" style="overflow-x:auto;">
+            <h3 style="color:var(--blue);margin-bottom:14px;">👥 用户列表</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>用户名</th><th>金币</th><th>胜</th><th>负</th><th>平</th><th>总场</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-title" style="font-size:20px;color:var(--gold);">修改金币</div>
+            <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;" id="editUser"></p>
+            <input type="number" class="form-input" id="editCoins" style="margin-bottom:16px;">
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn btn-gold btn-sm" onclick="saveCoins()">保存</button>
+                <button class="btn btn-ghost btn-sm" onclick="closeEdit()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let editTarget='';
+
+    function loadUsers(){
+        fetch('/api/admin/users').then(r=>r.json()).then(d=>{
+            if(!d.success)return;
+            const users=d.users;
+            document.getElementById('totalUsers').textContent=users.length;
+            document.getElementById('totalCoins').textContent=users.reduce((s,u)=>s+(u.coins||0),0);
+            document.getElementById('totalGames').textContent=users.reduce((s,u)=>s+(u.total_games||0),0);
+
+            const tbody=document.getElementById('userTable');tbody.innerHTML='';
+            users.forEach(u=>{
+                tbody.innerHTML+=`<tr>
+                    <td>${u.id}</td><td>${u.username}</td><td style="color:var(--gold);font-weight:700;">${u.coins||0}</td>
+                    <td style="color:var(--green);">${u.wins||0}</td><td style="color:var(--red);">${u.losses||0}</td>
+                    <td>${u.draws||0}</td><td>${u.total_games||0}</td>
+                    <td>
+                        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="openEdit('${u.username}',${u.coins||0})">改金币</button>
+                        <button class="btn btn-red" style="padding:4px 10px;font-size:11px;" onclick="delUser('${u.username}')">删除</button>
+                    </td>
+                </tr>`;
+            });
+        });
+    }
+
+    function addUser(){
+        const u=document.getElementById('addUsername').value.trim();
+        const p=document.getElementById('addPassword').value;
+        const c=parseInt(document.getElementById('addCoins').value)||1000;
+        if(!u||!p){alert('请输入用户名和密码');return;}
+        fetch('/api/admin/add_user',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({username:u,password:p,coins:c})})
+        .then(r=>r.json()).then(d=>{alert(d.message);if(d.success)loadUsers();});
+    }
+
+    function delUser(u){
+        if(!confirm(`确定删除用户 ${u}？`))return;
+        fetch('/api/admin/delete_user',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({username:u})})
+        .then(r=>r.json()).then(d=>{alert(d.message);if(d.success)loadUsers();});
+    }
+
+    function openEdit(u,c){editTarget=u;document.getElementById('editUser').textContent=`用户: ${u}`;document.getElementById('editCoins').value=c;document.getElementById('editModal').classList.add('show');}
+    function closeEdit(){document.getElementById('editModal').classList.remove('show');}
+    function saveCoins(){
+        const c=parseInt(document.getElementById('editCoins').value)||0;
+        fetch('/api/admin/set_coins',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({username:editTarget,coins:c})})
+        .then(r=>r.json()).then(d=>{alert(d.message);closeEdit();loadUsers();});
+    }
+
+    loadUsers();
+    </script>
+</body>
+</html>

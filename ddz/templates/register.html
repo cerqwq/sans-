@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>斗地主 - 注册</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+</head>
+<body class="auth-page">
+    <!-- Animated background particles -->
+    <div class="auth-bg">
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+    </div>
+
+    <div class="page-center">
+        <div class="auth-card">
+            <!-- Logo area -->
+            <div class="auth-logo">
+                <div class="auth-logo-icon">🃏</div>
+                <h1 class="auth-title">创建账号</h1>
+                <p class="auth-subtitle">注册后即可开始游戏</p>
+            </div>
+
+            <form class="auth-form" onsubmit="event.preventDefault();register()">
+                <div class="form-group">
+                    <label class="form-label" for="regUsername">用户名</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" class="form-input auth-input" id="regUsername" placeholder="请输入用户名" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPassword">密码</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" class="form-input auth-input" id="regPassword" placeholder="至少6位" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regConfirm">确认密码</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" class="form-input auth-input" id="regConfirm" placeholder="再次输入密码" autocomplete="new-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-green btn-block btn-lg auth-btn" id="regBtn">
+                    <span>注 册</span>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <span>已有账号？</span>
+                <a href="/" class="auth-link">立即登录</a>
+            </div>
+
+            <div id="msg" class="auth-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'auth-msg show ' + (ok ? 'success' : 'error');
+            clearTimeout(el._t);
+            el._t = setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        function register() {
+            const u = document.getElementById('regUsername').value.trim();
+            const p = document.getElementById('regPassword').value;
+            const c = document.getElementById('regConfirm').value;
+
+            if (!u || !p) { showMsg('用户名和密码不能为空！', false); return; }
+            if (p.length < 6) { showMsg('密码长度至少6位！', false); return; }
+            if (p !== c) { showMsg('两次密码不一致！', false); return; }
+
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-loading">注册中...</span>';
+
+            fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p})
+            })
+            .then(r => r.json())
+            .then(d => {
+                showMsg(d.message, d.success);
+                if (d.success) setTimeout(() => window.location.href = '/', 1500);
+                else { btn.disabled = false; btn.innerHTML = '<span>注 册</span>'; }
+            })
+            .catch(() => {
+                showMsg('网络错误！', false);
+                btn.disabled = false;
+                btn.innerHTML = '<span>注 册</span>';
+            });
+        }
+
+        document.addEventListener('keypress', e => { if (e.key === 'Enter') register(); });
+    </script>
+</body>
+</html>

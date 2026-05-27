@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+</head>
+<body class="lobby-bg">
+    <div class="page-center">
+        <div class="card" style="width:380px;max-width:90%;text-align:center;">
+            <div style="font-size:56px;margin-bottom:16px;">🔒</div>
+            <h1 style="font-size:24px;margin-bottom:6px;">管理员登录</h1>
+            <p style="color:var(--text-dim);font-size:13px;margin-bottom:28px;">请输入管理员账号和密码</p>
+
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">管理员账号</label>
+                <input type="text" class="form-input" id="username" placeholder="请输入账号">
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">密码</label>
+                <input type="password" class="form-input" id="password" placeholder="请输入密码">
+            </div>
+
+            <button class="btn btn-red btn-block btn-lg" onclick="adminLogin()">登 录</button>
+
+            <div id="msg" class="toast" style="position:static;margin-top:16px;display:none;transform:none;"></div>
+
+            <a href="/nav" style="display:block;text-align:center;margin-top:16px;color:var(--text-muted);font-size:13px;text-decoration:none;">← 返回导航</a>
+        </div>
+    </div>
+
+    <script>
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'toast show ' + (ok ? 'success' : 'error');
+            el.style.display = 'block';
+        }
+
+        function adminLogin() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            if (!u || !p) { showMsg('请输入账号和密码！', false); return; }
+
+            fetch('/api/admin_login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p})
+            })
+            .then(r => r.json())
+            .then(d => {
+                showMsg(d.message, d.success);
+                if (d.success) setTimeout(() => location.href = '/admin', 1000);
+            })
+            .catch(() => showMsg('网络错误！', false));
+        }
+
+        document.addEventListener('keypress', e => { if (e.key === 'Enter') adminLogin(); });
+    </script>
+</body>
+</html>

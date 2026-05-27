@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>斗地主 - 登录</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+</head>
+<body class="auth-page">
+    <!-- Animated background particles -->
+    <div class="auth-bg">
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+        <div class="auth-particle"></div>
+    </div>
+
+    <div class="page-center">
+        <div class="auth-card">
+            <!-- Logo area -->
+            <div class="auth-logo">
+                <div class="auth-logo-icon">🃏</div>
+                <h1 class="auth-title">欢乐斗地主</h1>
+                <p class="auth-subtitle">登录你的账号开始游戏</p>
+            </div>
+
+            <form class="auth-form" onsubmit="event.preventDefault();login()">
+                <div class="form-group">
+                    <label class="form-label" for="username">账号</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" class="form-input auth-input" id="username" placeholder="请输入账号" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">密码</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" class="form-input auth-input" id="password" placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-gold btn-block btn-lg auth-btn" id="loginBtn">
+                    <span>登 录</span>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <span>还没有账号？</span>
+                <a href="/register_page" class="auth-link">立即注册</a>
+            </div>
+
+            <div id="msg" class="auth-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'auth-msg show ' + (ok ? 'success' : 'error');
+            clearTimeout(el._t);
+            el._t = setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        function login() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            if (!u || !p) { showMsg('请输入账号和密码！', false); return; }
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-loading">登录中...</span>';
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p})
+            })
+            .then(r => r.json())
+            .then(d => {
+                showMsg(d.message, d.success);
+                if (d.success) {
+                    setTimeout(() => {
+                        window.open('/nav', '_blank');
+                        document.getElementById('username').value = '';
+                        document.getElementById('password').value = '';
+                        document.getElementById('msg').classList.remove('show');
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>登 录</span>';
+                    }, 800);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>登 录</span>';
+                }
+            })
+            .catch(() => {
+                showMsg('网络错误！', false);
+                btn.disabled = false;
+                btn.innerHTML = '<span>登 录</span>';
+            });
+        }
+
+        document.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+    </script>
+</body>
+</html>

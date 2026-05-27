@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机斗地主</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+</head>
+<body>
+    <div class="toast-container"><div class="toast" id="toast"></div></div>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/lobby" class="back-link">←</a>
+            <span class="title">🃏 联机斗地主</span>
+        </div>
+        <div class="top-bar-right">
+            <span class="badge" id="roomInfo">房间: 加载中...</span>
+            <span class="badge" id="connStatus" style="color:var(--green);">● 已连接</span>
+        </div>
+    </div>
+
+    <div class="game-table">
+        <!-- 左侧玩家 -->
+        <div class="player-area left" id="p1Area">
+            <div class="p-avatar ai" id="p1Avatar">👤</div>
+            <div class="player-info">
+                <div class="player-name" id="p1Name">等待中...</div>
+                <div class="card-back-row">
+                    <div class="card-back">🃏</div>
+                    <span class="card-count" id="p1Count">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧玩家 -->
+        <div class="player-area right" id="p2Area">
+            <div class="p-avatar ai" id="p2Avatar">👤</div>
+            <div class="player-info">
+                <div class="player-name" id="p2Name">等待中...</div>
+                <div class="card-back-row" style="justify-content:flex-end;">
+                    <span class="card-count" id="p2Count">0</span>
+                    <div class="card-back">🃏</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="play-zone" id="playZone"></div>
+        <div class="play-hint" id="playHint">等待游戏开始...</div>
+
+        <div class="my-area">
+            <div class="my-bar">
+                <div class="p-avatar human" id="myAvatar">😊</div>
+                <div class="player-info">
+                    <div class="player-name" id="myName">我</div>
+                </div>
+            </div>
+            <div class="my-cards" id="myCards"></div>
+
+            <div class="action-bar" id="readyBar">
+                <button class="g-btn g-btn-ready" id="readyBtn" onclick="toggleReady()">准备</button>
+            </div>
+            <div class="action-bar" id="actionBar" style="display:none;">
+                <button class="g-btn g-btn-play" id="playBtn" onclick="playCards()" disabled>出牌</button>
+                <button class="g-btn g-btn-pass" id="passBtn" onclick="passTurn()" disabled>不出</button>
+            </div>
+            <div class="action-bar" id="callBar" style="display:none;">
+                <button class="g-btn g-btn-call" onclick="callLandlord(true)">叫地主</button>
+                <button class="g-btn g-btn-nocall" onclick="callLandlord(false)">不叫</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">🎉 游戏结束</div>
+            <div class="modal-subtitle" id="modalSub"></div>
+            <button class="btn btn-gold" onclick="location.href='/lobby'">返回大厅</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+    const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000, reconnectionDelayMax: 5000 });
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+    let myCards=[], myPos=-1, players=[], selected=[], myTurn=false, isReady=false;
+
+    document.getElementById('roomInfo').textContent = `房间: ${roomCode||'未知'}`;
+
+    // 连接状态
+    socket.on('connect', () => {
+        document.getElementById('connStatus').textContent = '● 已连接';
+        document.getElementById('connStatus').style.color = 'var(--green)';
+        // 重连时重新加入房间
+        if(roomCode){
+            fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+                if(d.success) socket.emit('join_game',{room_code:roomCode,username:d.data.username});
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        document.getElementById('connStatus').textContent = '○ 断开';
+        document.getElementById('connStatus').style.color = 'var(--red)';
+        showToast('⚠️ 连接断开，正在重连...','warning');
+    });
+
+    socket.on('reconnect', () => {
+        showToast('✅ 已重新连接','success');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+            if(d.success){
+                document.getElementById('myName').textContent=d.data.username;
+                if(roomCode){socket.emit('join_game',{room_code:roomCode,username:d.data.username});showToast('🔄 加入游戏...','info');}
+                else showToast('❌ 房间号无效','error');
+            }else location.href='/';
+        });
+    });
+
+    socket.on('room_state', d => { updatePlayers(d.players); updateReadyBtn(d.players); });
+    socket.on('player_ready_update', d => { updatePlayers(d.players); updateReadyBtn(d.players); if(d.all_ready) showToast('🎮 所有玩家已准备！','success'); });
+
+    socket.on('game_started', d => {
+        myCards=d.your_cards; myPos=d.your_position; players=d.players;
+        renderCards(); updatePlayers(d.players);
+        document.getElementById('readyBar').style.display='none';
+        document.getElementById('callBar').style.display='none';
+        document.getElementById('actionBar').style.display='none';
+        document.getElementById('playHint').textContent=`🃏 发牌完成，等待叫地主... 倍率 x${d.multiplier}`;
+        players.forEach(p=>{const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';document.getElementById(id).classList.remove('landlord-avatar');});
+    });
+
+    socket.on('your_turn_to_call', d => {
+        myTurn=true;
+        document.getElementById('playHint').textContent=`🎯 请叫地主 (倍率 x${d.multiplier})`;
+        document.getElementById('actionBar').style.display='none';
+        document.getElementById('callBar').style.display='flex';
+        showToast('🎯 轮到你叫地主','info');
+    });
+
+    socket.on('call_result', d => showToast(`${d.username} ${d.action==='call'?'叫地主':'不叫'}！倍率 x${d.multiplier}`,'info'));
+
+    socket.on('landlord_confirmed', d => {
+        document.getElementById('callBar').style.display='none';
+        document.getElementById('actionBar').style.display='flex';
+        if(d.your_cards){myCards=d.your_cards;renderCards();}
+        players=d.players; updatePlayers(d.players);
+        document.getElementById('playHint').textContent=`👑 地主: ${d.landlord_username} 倍率 x${d.multiplier}`;
+        players.forEach(p=>{const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';document.getElementById(id).classList.toggle('landlord-avatar',p.is_landlord);});
+    });
+
+    socket.on('your_turn_to_play', () => { myTurn=true; enableBtns(true); document.getElementById('playHint').textContent='🎯 轮到你出牌'; showToast('🎯 轮到你出牌','info'); });
+    socket.on('all_no_call', () => showToast('🔄 所有人都没叫，重新发牌','warning'));
+
+    socket.on('cards_played', d => {
+        showPlayed(d.cards, d.username);
+        players.forEach(p=>{if(p.username===d.username)p.card_count=d.card_count;});
+        updatePlayers(players);
+        myTurn=(d.next_turn===myPos); enableBtns(myTurn);
+        if(myTurn){document.getElementById('playHint').textContent='🎯 轮到你出牌';showToast('🎯 轮到你出牌','info');}
+        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`🤖 ${np?.username||'对方'} 思考中...`;}
+    });
+
+    socket.on('turn_passed', d => {
+        showToast(`⏭️ ${d.username} 不出`,'info');
+        myTurn=(d.next_turn===myPos); enableBtns(myTurn);
+        if(myTurn)document.getElementById('playHint').textContent='🎯 轮到你出牌';
+        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`🤖 ${np?.username||'对方'} 思考中...`;}
+    });
+
+    socket.on('new_round', () => { document.getElementById('playZone').innerHTML=''; showToast('🔄 新轮次','info'); });
+
+    socket.on('game_over', d => {
+        const me=players.find(p=>p.position===myPos);
+        const t=document.getElementById('modalTitle'),s=document.getElementById('modalSub');
+        if(d.winner===me?.username){t.textContent='🎉 恭喜胜利！';t.className='modal-title win';s.textContent=`倍率 x${d.multiplier}${d.bomb_count>0?` 💥 ${d.bomb_count}个炸弹`:''}`;}
+        else{t.textContent='😢 遗憾落败';t.className='modal-title lose';s.textContent=`${d.winner} 赢得了比赛`;}
+        document.getElementById('resultModal').classList.add('show');
+    });
+
+    socket.on('error', d => showToast('❌ '+d.message,'error'));
+
+    function toggleReady(){socket.emit('player_ready',{room_code:roomCode});}
+    function callLandlord(call){if(!myTurn)return;socket.emit('call_landlord',{room_code:roomCode,call});myTurn=false;document.getElementById('callBar').style.display='none';}
+
+    function updateReadyBtn(pd){
+        const me=pd.find(p=>p.position===myPos);
+        const btn=document.getElementById('readyBtn');
+        if(me?.ready){btn.textContent='✅ 已准备';btn.classList.add('on');}
+        else{btn.textContent='准备';btn.classList.remove('on');}
+    }
+
+    function renderCards(){
+        const c=document.getElementById('myCards');c.innerHTML='';
+        myCards.forEach((card,i)=>{
+            const d=document.createElement('div');
+            d.className='card-face card-hand';
+            const suit=card[0],rank=card.substring(1),red=suit==='♥'||suit==='♦';
+            d.classList.add(red?'red':'black');
+            d.innerHTML=`<span class="c-rank">${rank}</span><span class="c-suit">${suit}</span>`;
+            if(selected.includes(i))d.classList.add('selected');
+            d.onclick=()=>toggleSel(i);
+            c.appendChild(d);
+        });
+    }
+
+    function toggleSel(i){
+        if(!myTurn)return;
+        const idx=selected.indexOf(i);idx===-1?selected.push(i):selected.splice(idx,1);
+        renderCards();
+    }
+
+    function updatePlayers(pd){
+        pd.forEach(p=>{
+            if(p.position===0){document.getElementById('p1Name').textContent=p.username;document.getElementById('p1Count').textContent=p.card_count;}
+            else if(p.position===1){document.getElementById('p2Name').textContent=p.username;document.getElementById('p2Count').textContent=p.card_count;}
+        });
+        const me=pd.find(p=>p.position===myPos);
+        if(me)document.getElementById('myName').textContent=me.username;
+    }
+
+    function showPlayed(cards,user){
+        const z=document.getElementById('playZone');z.innerHTML='';
+        cards.forEach(card=>{
+            const d=document.createElement('div');d.className='card-face card-played';
+            const suit=card[0],rank=card.substring(1),red=suit==='♥'||suit==='♦';
+            d.classList.add(red?'red':'black');
+            d.innerHTML=`<span class="c-rank">${rank}</span><span class="c-suit">${suit}</span>`;
+            z.appendChild(d);
+        });
+        document.getElementById('playHint').textContent=`${user} 出了 ${cards.length} 张牌`;
+    }
+
+    function playCards(){
+        if(!myTurn){showToast('还没轮到你！','error');return;}
+        if(!selected.length){showToast('请先选择牌！','error');return;}
+        const cards=selected.map(i=>myCards[i]);
+        for(let i of selected.sort((a,b)=>b-a))myCards.splice(i,1);
+        selected=[];
+        socket.emit('play_cards',{room_code:roomCode,cards});
+        renderCards();myTurn=false;enableBtns(false);
+    }
+
+    function passTurn(){
+        if(!myTurn){showToast('还没轮到你！','error');return;}
+        socket.emit('pass_turn',{room_code:roomCode});
+        myTurn=false;enableBtns(false);showToast('⏭️ 你选择不出','info');
+    }
+
+    function enableBtns(on){document.getElementById('playBtn').disabled=!on;document.getElementById('passBtn').disabled=!on;}
+    function showToast(text,type='info'){const t=document.getElementById('toast');t.textContent=text;t.className='toast show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
+    </script>
+</body>
+</html>
