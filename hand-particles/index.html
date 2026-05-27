@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Particles</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <video id="video" autoplay playsinline></video>
+  <div id="status">等待摄像头...</div>
+  <div id="colorPicker">
+    <button class="swatch active" data-color="multi" title="彩虹">
+      <span style="background: linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f);"></span>
+    </button>
+    <button class="swatch" data-color="yellow" title="金色">
+      <span style="background: #ffd700;"></span>
+    </button>
+    <button class="swatch" data-color="blue" title="冰蓝">
+      <span style="background: #4488ff;"></span>
+    </button>
+    <button class="swatch" data-color="cyan" title="青色">
+      <span style="background: #00e5ff;"></span>
+    </button>
+    <button class="swatch" data-color="green" title="翠绿">
+      <span style="background: #39ff14;"></span>
+    </button>
+    <button class="swatch" data-color="red" title="赤红">
+      <span style="background: #ff2244;"></span>
+    </button>
+  </div>
+
+  <script src="vendor/hands.min.js"></script>
+  <script src="vendor/camera_utils.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
