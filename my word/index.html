@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>李宿 | 全栈开发工程师</title>
+
+    <!-- Fonts: Outfit (display) + DM Sans (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loader -->
+    <div id="loader" class="loader">
+        <div class="loader-inner">
+            <div class="loader-bar"></div>
+            <span class="loader-text">LOADING</span>
+        </div>
+    </div>
+
+    <!-- Grain overlay -->
+    <div class="grain-overlay"></div>
+
+    <!-- Cursor follower -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#home" class="nav-logo">
+                <span class="logo-mark">L</span>
+                <span class="logo-name">lisu</span>
+            </a>
+
+            <div class="nav-links" id="navLinks">
+                <a href="#home" class="nav-link active" data-text="首页">首页</a>
+                <a href="#about" class="nav-link" data-text="关于">关于</a>
+                <a href="#skills" class="nav-link" data-text="技能">技能</a>
+                <a href="#projects" class="nav-link" data-text="项目">项目</a>
+                <a href="#contact" class="nav-link" data-text="联系">联系</a>
+                <a href="https://github.com/lisu"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="nav-link nav-external">
+                    GitHub <i class="fas fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+
+            <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero-section">
+        <div class="hero-bg">
+            <div class="hero-grid-lines"></div>
+            <div class="hero-glow hero-glow-1"></div>
+            <div class="hero-glow hero-glow-2"></div>
+        </div>
+
+        <div class="container hero-container">
+            <div class="hero-left">
+                <div class="hero-tag">
+                    <span class="tag-dot"></span>
+                    <span>可远程协作 · 全栈开发</span>
+                </div>
+
+                <h1 class="hero-title">
+                    <span class="title-line title-line-1">你好，我是</span>
+                    <span class="title-line title-line-2">
+                        <span class="title-name">李宿</span>
+                        <span class="title-alias">lisu</span>
+                    </span>
+                    <span class="title-line title-line-3">
+                        <span class="typing-text" id="typingText"></span>
+                        <span class="typing-cursor">|</span>
+                    </span>
+                </h1>
+
+                <p class="hero-desc">
+                    专注于构建高性能、用户友好的 Web 应用。<br>
+                    5 年全栈开发经验，热爱开源与创意设计。
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#projects" class="btn btn-primary">
+                        <span>查看项目</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="#contact" class="btn btn-ghost">
+                        <span>联系我</span>
+                    </a>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="stat-num" data-count="50">0</span>
+                        <span class="stat-label">完成项目</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="stat-num" data-count="30">0</span>
+                        <span class="stat-label">满意客户</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="stat-num" data-count="1000">0</span>
+                        <span class="stat-label">代码提交</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-right">
+                <div class="hero-image-wrap">
+                    <div class="hero-image-frame">
+                        <img src="assets/photo.jpg" alt="李宿" class="hero-image">
+                        <div class="hero-image-overlay"></div>
+                    </div>
+                    <div class="hero-image-deco"></div>
+                    <div class="hero-image-status">
+                        <span class="status-dot"></span>
+                        <span>在线可联系</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scroll-hint">
+            <div class="scroll-line"></div>
+            <span>SCROLL</span>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="section about-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">01</span>
+                <h2 class="section-title">关于我</h2>
+                <p class="section-subtitle">了解更多关于我的故事</p>
+            </div>
+
+            <div class="about-grid">
+                <div class="about-visual">
+                    <div class="about-image-card">
+                        <div class="about-icon-wrap">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="about-image-label">
+                            <span class="label-year">5+</span>
+                            <span class="label-text">年开发经验</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-content">
+                    <p class="about-lead">
+                        我是一名充满激情的全栈开发工程师，专注于创建用户友好、高性能的 Web 应用程序。
+                    </p>
+                    <p class="about-text">
+                        拥有 5 年的开发经验，熟练掌握现代前端和后端技术。从需求分析到部署上线，我享受每一个环节带来的挑战与成就感。我相信好的代码不仅要能运行，更要优雅、可维护。
+                    </p>
+
+                    <div class="about-highlights">
+                        <div class="highlight-item">
+                            <div class="highlight-icon"><i class="fas fa-laptop-code"></i></div>
+                            <div>
+                                <h4>全栈开发</h4>
+                                <p>前端到后端，一站式解决方案</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <div class="highlight-icon"><i class="fas fa-palette"></i></div>
+                            <div>
+                                <h4>UI/UX 设计</h4>
+                                <p>注重用户体验与视觉美感</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <div class="highlight-icon"><i class="fas fa-heart"></i></div>
+                            <div>
+                                <h4>开源爱好者</h4>
+                                <p>热爱社区，乐于分享与协作</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="assets/resume.pdf" download class="btn btn-outline">
+                        <span>下载简历</span>
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="section skills-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">02</span>
+                <h2 class="section-title">专业技能</h2>
+                <p class="section-subtitle">我的技术栈与工具</p>
+            </div>
+
+            <div class="skills-grid">
+                <div class="skill-card" data-delay="0">
+                    <div class="skill-number">01</div>
+                    <div class="skill-icon">
+                        <i class="fab fa-html5"></i>
+                    </div>
+                    <h3 class="skill-name">HTML5 & CSS3</h3>
+                    <div class="skill-bar">
+                        <div class="skill-bar-fill" data-width="95"></div>
+                    </div>
+                    <p class="skill-desc">语义化标签、Flexbox、Grid 布局、CSS 动画与响应式设计</p>
+                    <span class="skill-percent">95%</span>
+                </div>
+
+                <div class="skill-card" data-delay="1">
+                    <div class="skill-number">02</div>
+                    <div class="skill-icon">
+                        <i class="fab fa-js-square"></i>
+                    </div>
+                    <h3 class="skill-name">JavaScript</h3>
+                    <div class="skill-bar">
+                        <div class="skill-bar-fill" data-width="90"></div>
+                    </div>
+                    <p class="skill-desc">ES6+、异步编程、DOM 操作、面向对象与函数式编程</p>
+                    <span class="skill-percent">90%</span>
+                </div>
+
+                <div class="skill-card" data-delay="2">
+                    <div class="skill-number">03</div>
+                    <div class="skill-icon">
+                        <i class="fab fa-react"></i>
+                    </div>
+                    <h3 class="skill-name">React</h3>
+                    <div class="skill-bar">
+                        <div class="skill-bar-fill" data-width="85"></div>
+                    </div>
+                    <p class="skill-desc">组件化开发、Hooks、状态管理、性能优化与 SSR</p>
+                    <span class="skill-percent">85%</span>
+                </div>
+
+                <div class="skill-card" data-delay="3">
+                    <div class="skill-number">04</div>
+                    <div class="skill-icon">
+                        <i class="fab fa-node-js"></i>
+                    </div>
+                    <h3 class="skill-name">Node.js</h3>
+                    <div class="skill-bar">
+                        <div class="skill-bar-fill" data-width="80"></div>
+                    </div>
+                    <p class="skill-desc">Express、RESTful API、数据库集成、微服务架构</p>
+                    <span class="skill-percent">80%</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="section projects-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">03</span>
+                <h2 class="section-title">精选项目</h2>
+                <p class="section-subtitle">我最近完成的一些项目</p>
+            </div>
+
+            <div class="projects-filter">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="web">Web 应用</button>
+                <button class="filter-btn" data-filter="mobile">移动端</button>
+                <button class="filter-btn" data-filter="design">设计</button>
+            </div>
+
+            <div class="projects-grid">
+                <!-- 斗地主项目 -->
+                <div class="project-card" data-category="web">
+                    <div class="project-image">
+                        <div class="project-placeholder">
+                            <i class="fas fa-gamepad"></i>
+                            <span>斗地主</span>
+                        </div>
+                        <div class="project-overlay">
+                            <a href="/ddz/" class="project-link" style="margin-right: 10px;">
+                                <span>在线试玩</span>
+                                <i class="fas fa-play"></i>
+                            </a>
+                            <a href="https://github.com/lisu/ddz" target="_blank" rel="noopener noreferrer" class="project-link project-link-secondary">
+                                <span>源码</span>
+                                <i class="fab fa-github"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-tags">
+                            <span>Python</span>
+                            <span>Flask</span>
+                            <span>WebSocket</span>
+                        </div>
+                        <h3 class="project-title">斗地主在线游戏</h3>
+                        <p class="project-desc">一个在线斗地主游戏，支持多人实时对战，流畅的交互体验。</p>
+                    </div>
+                </div>
+
+                <!-- 手势粒子项目 -->
+                <div class="project-card" data-category="design">
+                    <div class="project-image">
+                        <div class="project-placeholder">
+                            <i class="fas fa-hand-sparkles"></i>
+                            <span>手势粒子</span>
+                        </div>
+                        <div class="project-overlay">
+                            <a href="/hand-particles/" class="project-link" style="margin-right: 10px;">
+                                <span>在线体验</span>
+                                <i class="fas fa-play"></i>
+                            </a>
+                            <a href="https://github.com/lisu/hand-particles" target="_blank" rel="noopener noreferrer" class="project-link project-link-secondary">
+                                <span>源码</span>
+                                <i class="fab fa-github"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-tags">
+                            <span>JavaScript</span>
+                            <span>Canvas</span>
+                            <span>MediaPipe</span>
+                        </div>
+                        <h3 class="project-title">手势粒子特效</h3>
+                        <p class="project-desc">使用手势识别控制粒子效果，支持剑指、握拳、张开等多种手势。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section contact-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">04</span>
+                <h2 class="section-title">联系我</h2>
+                <p class="section-subtitle">有想法？让我们聊聊！</p>
+            </div>
+
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-detail">
+                            <span class="contact-label">电子邮件</span>
+                            <a href="mailto:995935899@qq.com">995935899@qq.com</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-detail">
+                            <span class="contact-label">电话</span>
+                            <a href="tel:+8618028928837">+86 180 2892 8837</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-detail">
+                            <span class="contact-label">地址</span>
+                            <span>中国 · 西安市 · 灞桥区</span>
+                        </div>
+                    </div>
+
+                    <div class="social-links">
+                        <a href="https://github.com/lisu" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                        <a href="https://linkedin.com/in/lisu" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="https://twitter.com/lisu" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="https://dribbble.com/lisu" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Dribbble"><i class="fab fa-dribbble"></i></a>
+                    </div>
+                </div>
+
+                <div class="contact-form-wrap">
+                    <form id="contactForm" class="contact-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="你的姓名" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="email" class="form-control" placeholder="你的邮箱" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="主题">
+                        </div>
+                        <div class="form-group">
+                            <textarea class="form-control" placeholder="你的消息" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <span>发送消息</span>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <span class="logo-mark">L</span>
+                    <span class="logo-name">lisu</span>
+                    <p class="footer-tagline">创造有价值的数字体验</p>
+                </div>
+
+                <div class="footer-links">
+                    <h4>快速链接</h4>
+                    <a href="#home">首页</a>
+                    <a href="#about">关于我</a>
+                    <a href="#skills">技能</a>
+                    <a href="#projects">项目</a>
+                    <a href="#contact">联系</a>
+                </div>
+
+                <div class="footer-social">
+                    <h4>关注我</h4>
+                    <div class="footer-social-links">
+                        <a href="https://github.com/lisu" target="_blank" rel="noopener noreferrer"><i class="fab fa-github"></i></a>
+                        <a href="https://twitter.com/lisu" target="_blank" rel="noopener noreferrer"><i class="fab fa-twitter"></i></a>
+                        <a href="https://instagram.com/lisu" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
+                        <a href="https://youtube.com/@lisu" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2026 lisu. 保留所有权利.</p>
+                <p>用 <span class="heart">&hearts;</span> 和 <i class="fas fa-coffee"></i> 创建</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to top -->
+    <button id="backToTop" class="back-to-top" aria-label="返回顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>
