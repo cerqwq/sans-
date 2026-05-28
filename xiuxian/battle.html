@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>修仙战斗</title>
+<style>
+/* ══════════════════════════════════════════
+   全局重置 & 背景
+   ══════════════════════════════════════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Microsoft YaHei", sans-serif; }
+
+.battle-scene {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 30% 20%, #1a1a1a 0%, #0a0a0a 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 全屏闪白（大招用） */
+.flash-overlay {
+  position: fixed; inset: 0; background: #fff; opacity: 0;
+  pointer-events: none; z-index: 999;
+  transition: opacity 0.05s;
+}
+.flash-overlay.active { opacity: 0.8; }
+
+/* ══════════════════════════════════════════
+   战场区域（上部 flex:1）
+   ══════════════════════════════════════════ */
+.battlefield {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── 角色容器 ── */
+.character {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.character .name {
+  color: #ccc;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+/* 角色占位 100x120 */
+.char-sprite {
+  width: 100px;
+  height: 120px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  position: relative;
+}
+
+.player .char-sprite {
+  background: linear-gradient(135deg, #1a2a1a 0%, #0a1a0a 100%);
+  box-shadow: 0 0 20px rgba(80, 200, 120, 0.15);
+  border: 1px solid rgba(80, 200, 120, 0.2);
+}
+
+.enemy .char-sprite {
+  background: linear-gradient(135deg, #2a1a1a 0%, #1a0a0a 100%);
+  box-shadow: 0 0 20px rgba(200, 80, 80, 0.15);
+  border: 1px solid rgba(200, 80, 80, 0.2);
+}
+
+/* 受击后仰 */
+.character.hit { animation: hitRecoil 0.3s ease; }
+@keyframes hitRecoil {
+  0% { transform: translateX(0) rotate(0); }
+  30% { transform: translateX(-15px) rotate(-3deg); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+.enemy.hit { animation: enemyRecoil 0.3s ease; }
+@keyframes enemyRecoil {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(20px); }
+  100% { transform: translateX(0); }
+}
+
+/* 大招击退 */
+.enemy.knockback { animation: knockback 0.5s ease; }
+@keyframes knockback {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(60px) scale(0.95); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* 玩家前冲 */
+.player.charge { animation: playerCharge 0.4s ease; }
+@keyframes playerCharge {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(80px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── 血条区域 ── */
+.hp-section {
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hp-label {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  justify-content: space-between;
+}
+
+.hp-bar-track {
+  width: 100%;
+  height: 14px;
+  background: #c0392b;
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: #27ae60;
+  border-radius: 7px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.hp-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+  border-radius: 7px 7px 0 0;
+}
+
+/* 扣血闪烁 */
+.hp-bar-track.flash {
+  animation: hpFlash 0.3s ease;
+}
+@keyframes hpFlash {
+  0%, 100% { background: #c0392b; }
+  50% { background: #ff6b6b; }
+}
+
+/* ══════════════════════════════════════════
+   战斗日志（右侧）
+   ══════════════════════════════════════════ */
+.combat-log-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 200px;
+  max-height: 300px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.combat-log-panel::-webkit-scrollbar { width: 4px; }
+.combat-log-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.log-entry {
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.6;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  animation: logSlide 0.3s ease;
+}
+
+@keyframes logSlide {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.log-entry.player-action { color: #6dc77a; }
+.log-entry.enemy-action { color: #e05555; }
+.log-entry.crit { color: #ffd700; font-weight: bold; }
+.log-entry.heal { color: #55c5e0; }
+.log-entry.system { color: #888; font-style: italic; }
+
+/* ══════════════════════════════════════════
+   技能栏（底部固定）
+   ══════════════════════════════════════════ */
+.skill-bar {
+  height: 110px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 20px;
+  z-index: 10;
+}
+
+/* ── 神通大招 70x70 ── */
+.skill-slot.ultimate {
+  width: 70px;
+  height: 70px;
+  border-radius: 14px;
+  background: #2a2a2a;
+  border: 2px solid #ffd700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #ffd700;
+  cursor: pointer;
+  position: relative;
+  animation: ultimatePulse 1.5s ease-in-out infinite;
+  transition: transform 0.1s;
+  user-select: none;
+}
+
+@keyframes ultimatePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.6); }
+}
+
+.skill-slot.ultimate:active { transform: scale(0.95); }
+
+.skill-slot.ultimate .ult-label {
+  position: absolute;
+  bottom: -18px;
+  font-size: 10px;
+  color: #ffd700;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+/* ── 技能槽 55x55 ── */
+.skill-slot {
+  width: 55px;
+  height: 55px;
+  border-radius: 12px;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #ccc;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  overflow: hidden;
+}
+
+.skill-slot:hover { transform: scale(1.05); }
+.skill-slot:active { transform: scale(0.95); }
+
+.skill-slot .slot-label {
+  position: absolute;
+  bottom: -16px;
+  font-size: 10px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* 冷却覆盖层 */
+.skill-slot .cooldown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #aaa;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.skill-slot.on-cooldown .cooldown-overlay { opacity: 1; }
+.skill-slot.on-cooldown { pointer-events: none; filter: grayscale(0.6); }
+
+/* ── 攻击按钮 ── */
+.attack-btn {
+  height: 46px;
+  padding: 0 28px;
+  background: linear-gradient(to bottom, #333, #111);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s;
+  user-select: none;
+}
+
+.attack-btn:hover { box-shadow: 0 0 12px rgba(255,255,255,0.15); }
+.attack-btn:active { transform: scale(0.95); }
+
+/* ── 防御按钮 ── */
+.defend-btn {
+  height: 46px;
+  padding: 0 22px;
+  background: linear-gradient(to bottom, #2a2a3a, #15151f);
+  border: 2px solid rgba(100, 140, 220, 0.4);
+  border-radius: 10px;
+  color: #8aa8d0;
+  font-size: 14px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  user-select: none;
+}
+.defend-btn:active { transform: scale(0.95); }
+
+/* ══════════════════════════════════════════
+   大招粒子（CSS 伪元素模拟）
+   ══════════════════════════════════════════ */
+.particles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffd700;
+  opacity: 0;
+  animation: particleFly 0.8s ease-out forwards;
+}
+
+@keyframes particleFly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+}
+
+/* ══════════════════════════════════════════
+   伤害数字浮动
+   ══════════════════════════════════════════ */
+.damage-float {
+  position: absolute;
+  font-size: 22px;
+  font-weight: bold;
+  color: #ff4444;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  pointer-events: none;
+  animation: dmgFloat 1s ease-out forwards;
+  z-index: 60;
+}
+
+.damage-float.crit {
+  font-size: 30px;
+  color: #ffd700;
+}
+
+.damage-float.heal {
+  color: #27ae60;
+}
+
+@keyframes dmgFloat {
+  0% { opacity: 1; transform: translateY(0) scale(0.5); }
+  20% { transform: translateY(-10px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+/* ══════════════════════════════════════════
+   胜利/失败覆盖层
+   ══════════════════════════════════════════ */
+.result-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.result-overlay.show { opacity: 1; pointer-events: auto; }
+
+.result-overlay .result-text {
+  font-size: 48px;
+  font-weight: bold;
+  letter-spacing: 8px;
+  margin-bottom: 20px;
+}
+.result-overlay .result-text.victory { color: #ffd700; text-shadow: 0 0 30px rgba(255,215,0,0.5); }
+.result-overlay .result-text.defeat { color: #e74c3c; text-shadow: 0 0 30px rgba(231,76,60,0.5); }
+
+.result-overlay .restart-btn {
+  padding: 12px 40px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  letter-spacing: 3px;
+  transition: background 0.2s;
+}
+.result-overlay .restart-btn:hover { background: rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+
+<div class="battle-scene" id="battleScene">
+  <!-- 全屏闪白 -->
+  <div class="flash-overlay" id="flashOverlay"></div>
+
+  <!-- 粒子容器 -->
+  <div class="particles-container" id="particlesContainer"></div>
+
+  <!-- 战场 -->
+  <div class="battlefield">
+    <!-- 玩家 -->
+    <div class="character player" id="player">
+      <div class="name" id="playerName">修士</div>
+      <div class="char-sprite">⚔</div>
+      <div class="hp-section">
+        <div class="hp-label"><span>气血</span><span id="playerHpText">100/100</span></div>
+        <div class="hp-bar-track" id="playerHpTrack">
+          <div class="hp-bar-fill" id="playerHpBar" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 敌人 -->
+    <div class="character enemy" id="enemy">
+      <div class="name" id="enemyName">妖兽</div>
+      <div class="char-sprite">👹</div>
+      <div class="hp-section">
+        <div class="hp-label"><span>气血</span><span id="enemyHpText">80/80</span></div>
+        <div class="hp-bar-track" id="enemyHpTrack">
+          <div class="hp-bar-fill" id="enemyHpBar" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 战斗日志 -->
+    <div class="combat-log-panel" id="combatLog"></div>
+  </div>
+
+  <!-- 技能栏 -->
+  <div class="skill-bar">
+    <div class="skill-slot ultimate" id="skillUltimate" onclick="useUltimate()">
+      神
+      <span class="ult-label">神通</span>
+    </div>
+
+    <div class="skill-slot" id="skill1" onclick="useSkill(1)">
+      🔥
+      <span class="slot-label">火球</span>
+      <div class="cooldown-overlay" id="cd1"></div>
+    </div>
+
+    <div class="skill-slot" id="skill2" onclick="useSkill(2)">
+      ❄
+      <span class="slot-label">冰锥</span>
+      <div class="cooldown-overlay" id="cd2"></div>
+    </div>
+
+    <div class="skill-slot" id="skill3" onclick="useSkill(3)">
+      ⚡
+      <span class="slot-label">雷击</span>
+      <div class="cooldown-overlay" id="cd3"></div>
+    </div>
+
+    <div class="skill-slot" id="skill4" onclick="useSkill(4)">
+      🌿
+      <span class="slot-label">回春</span>
+      <div class="cooldown-overlay" id="cd4"></div>
+    </div>
+
+    <button class="attack-btn" onclick="doAttack()">攻击</button>
+    <button class="defend-btn" onclick="doDefend()">防御</button>
+  </div>
+
+  <!-- 胜利/失败 -->
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-text" id="resultText"></div>
+    <button class="restart-btn" onclick="restartBattle()">再来</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// 战斗状态
+// ══════════════════════════════════════════
+const state = {
+  player:  { hp: 100, maxHp: 100 },
+  enemy:   { hp: 80,  maxHp: 80 },
+  cooldowns: { 1: 0, 2: 0, 3: 0, 4: 0 },
+  finished: false,
+};
+
+// ══════════════════════════════════════════
+// DOM 引用
+// ══════════════════════════════════════════
+const $player      = document.getElementById('player');
+const $enemy       = document.getElementById('enemy');
+const $playerHpBar = document.getElementById('playerHpBar');
+const $enemyHpBar  = document.getElementById('enemyHpBar');
+const $playerHpText= document.getElementById('playerHpText');
+const $enemyHpText = document.getElementById('enemyHpText');
+const $playerHpTrack= document.getElementById('playerHpTrack');
+const $enemyHpTrack = document.getElementById('enemyHpTrack');
+const $log         = document.getElementById('combatLog');
+const $flash       = document.getElementById('flashOverlay');
+const $particles   = document.getElementById('particlesContainer');
+const $result      = document.getElementById('resultOverlay');
+const $resultText  = document.getElementById('resultText');
+
+// ══════════════════════════════════════════
+// 血条更新
+// ══════════════════════════════════════════
+function updateHp() {
+  const pPct = Math.max(0, state.player.hp / state.player.maxHp * 100);
+  const ePct = Math.max(0, state.enemy.hp  / state.enemy.maxHp  * 100);
+  $playerHpBar.style.width = pPct + '%';
+  $enemyHpBar.style.width  = ePct + '%';
+  $playerHpText.textContent = `${Math.max(0,state.player.hp)}/${state.player.maxHp}`;
+  $enemyHpText.textContent  = `${Math.max(0,state.enemy.hp)}/${state.enemy.maxHp}`;
+}
+
+function flashHp(trackEl) {
+  trackEl.classList.add('flash');
+  setTimeout(() => trackEl.classList.remove('flash'), 300);
+}
+
+// ══════════════════════════════════════════
+// 伤害数字
+// ══════════════════════════════════════════
+function showDamage(targetEl, text, isCrit, isHeal) {
+  const el = document.createElement('div');
+  el.className = 'damage-float' + (isCrit ? ' crit' : '') + (isHeal ? ' heal' : '');
+  el.textContent = text;
+  const rect = targetEl.getBoundingClientRect();
+  const scene = document.getElementById('battleScene').getBoundingClientRect();
+  el.style.left = (rect.left - scene.left + rect.width / 2 - 20) + 'px';
+  el.style.top  = (rect.top  - scene.top  + 20) + 'px';
+  document.getElementById('battleScene').appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ══════════════════════════════════════════
+// 战斗日志
+// ══════════════════════════════════════════
+function addLog(msg, type) {
+  const p = document.createElement('div');
+  p.className = 'log-entry ' + (type || '');
+  p.textContent = msg;
+  $log.appendChild(p);
+  $log.scrollTop = $log.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+// 动画触发
+// ══════════════════════════════════════════
+function triggerAnim(el, cls, dur) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), dur);
+}
+
+// ══════════════════════════════════════════
+// 全屏闪白
+// ══════════════════════════════════════════
+function triggerFlash() {
+  $flash.classList.add('active');
+  setTimeout(() => $flash.classList.remove('active'), 200);
+}
+
+// ══════════════════════════════════════════
+// 粒子发射（大招用）
+// ══════════════════════════════════════════
+function spawnParticles(count) {
+  const rect = $enemy.getBoundingClientRect();
+  const scene = document.getElementById('battleScene').getBoundingClientRect();
+  const cx = rect.left - scene.left + rect.width / 2;
+  const cy = rect.top  - scene.top  + rect.height / 2;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = 60 + Math.random() * 100;
+    p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    p.style.left = cx + 'px';
+    p.style.top  = cy + 'px';
+    p.style.background = ['#ffd700','#ff6b35','#ff4444','#ffffff'][Math.floor(Math.random()*4)];
+    $particles.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+}
+
+// ══════════════════════════════════════════
+// 敌人简单 AI
+// ══════════════════════════════════════════
+function enemyTurn() {
+  if (state.finished) return;
+  const dmg = 8 + Math.floor(Math.random() * 8);
+  state.player.hp -= dmg;
+  triggerAnim($enemy, 'hit', 300);
+  addLog(`妖兽攻击你，造成 ${dmg} 点伤害`, 'enemy-action');
+  showDamage($player, `-${dmg}`, false, false);
+  flashHp($playerHpTrack);
+  updateHp();
+  checkEnd();
+}
+
+// ══════════════════════════════════════════
+// 普通攻击
+// ══════════════════════════════════════════
+function doAttack() {
+  if (state.finished) return;
+  const isCrit = Math.random() < 0.2;
+  let dmg = 12 + Math.floor(Math.random() * 8);
+  if (isCrit) { dmg = Math.floor(dmg * 1.8); }
+  state.enemy.hp -= dmg;
+  triggerAnim($player, 'charge', 400);
+  setTimeout(() => {
+    triggerAnim($enemy, 'hit', 300);
+    flashHp($enemyHpTrack);
+    showDamage($enemy, isCrit ? `-${dmg} 暴击!` : `-${dmg}`, isCrit, false);
+    addLog(isCrit ? `你暴击妖兽，造成 ${dmg} 点伤害！` : `你攻击妖兽，造成 ${dmg} 点伤害`, isCrit ? 'player-action crit' : 'player-action');
+    updateHp();
+    if (!checkEnd()) setTimeout(enemyTurn, 600);
+  }, 200);
+}
+
+// ══════════════════════════════════════════
+// 防御
+// ══════════════════════════════════════════
+function doDefend() {
+  if (state.finished) return;
+  addLog('你摆出防御姿态，伤害减半', 'system');
+  // 敌人攻击，伤害减半
+  const dmg = Math.floor((8 + Math.floor(Math.random() * 8)) / 2);
+  state.player.hp -= dmg;
+  flashHp($playerHpTrack);
+  showDamage($player, `-${dmg}`, false, false);
+  addLog(`妖兽攻击你，造成 ${dmg} 点伤害（防御）`, 'enemy-action');
+  updateHp();
+  checkEnd();
+}
+
+// ══════════════════════════════════════════
+// 技能系统
+// ══════════════════════════════════════════
+const SKILLS = {
+  1: { name: '火球', dmg: 22, type: 'attack', cd: 5 },
+  2: { name: '冰锥', dmg: 18, type: 'attack', cd: 5 },
+  3: { name: '雷击', dmg: 28, type: 'attack', cd: 5 },
+  4: { name: '回春', dmg: 25, type: 'heal',   cd: 5 },
+};
+
+function useSkill(idx) {
+  if (state.finished) return;
+  const sk = SKILLS[idx];
+  if (!sk || state.cooldowns[idx] > 0) return;
+
+  // 开始冷却
+  startCooldown(idx);
+
+  if (sk.type === 'heal') {
+    // 治疗
+    const heal = sk.dmg + Math.floor(Math.random() * 10);
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + heal);
+    showDamage($player, `+${heal}`, false, true);
+    addLog(`你使用${sk.name}，恢复 ${heal} 点气血`, 'heal');
+    updateHp();
+  } else {
+    // 攻击
+    const isCrit = Math.random() < 0.15;
+    let dmg = sk.dmg + Math.floor(Math.random() * 10);
+    if (isCrit) dmg = Math.floor(dmg * 1.8);
+    state.enemy.hp -= dmg;
+    triggerAnim($player, 'charge', 400);
+    setTimeout(() => {
+      triggerAnim($enemy, 'hit', 300);
+      flashHp($enemyHpTrack);
+      showDamage($enemy, isCrit ? `-${dmg} 暴击!` : `-${dmg}`, isCrit, false);
+      addLog(isCrit ? `你使用${sk.name}暴击，造成 ${dmg} 点伤害！` : `你使用${sk.name}，造成 ${dmg} 点伤害`, isCrit ? 'player-action crit' : 'player-action');
+      updateHp();
+      if (!checkEnd()) setTimeout(enemyTurn, 600);
+    }, 200);
+  }
+}
+
+// ══════════════════════════════════════════
+// 神通大招
+// ══════════════════════════════════════════
+function useUltimate() {
+  if (state.finished) return;
+  const isCrit = Math.random() < 0.3;
+  let dmg = 50 + Math.floor(Math.random() * 20);
+  if (isCrit) dmg = Math.floor(dmg * 2);
+  state.enemy.hp -= dmg;
+
+  // 全屏闪白
+  triggerFlash();
+  // 粒子
+  spawnParticles(30);
+  // 敌人击退
+  triggerAnim($enemy, 'knockback', 500);
+  flashHp($enemyHpTrack);
+
+  setTimeout(() => {
+    showDamage($enemy, isCrit ? `-${dmg} 天崩地裂!` : `-${dmg}`, isCrit, false);
+    addLog(isCrit ? `你释放神通暴击，造成 ${dmg} 点伤害！！` : `你释放神通，造成 ${dmg} 点伤害`, isCrit ? 'player-action crit' : 'player-action');
+    updateHp();
+    if (!checkEnd()) setTimeout(enemyTurn, 800);
+  }, 250);
+}
+
+// ══════════════════════════════════════════
+// 冷却系统
+// ══════════════════════════════════════════
+function startCooldown(idx) {
+  state.cooldowns[idx] = SKILLS[idx].cd;
+  const slot = document.getElementById('skill' + idx);
+  const cdEl = document.getElementById('cd' + idx);
+  slot.classList.add('on-cooldown');
+  cdEl.textContent = state.cooldowns[idx];
+  const timer = setInterval(() => {
+    state.cooldowns[idx]--;
+    if (state.cooldowns[idx] <= 0) {
+      clearInterval(timer);
+      slot.classList.remove('on-cooldown');
+      cdEl.textContent = '';
+    } else {
+      cdEl.textContent = state.cooldowns[idx];
+    }
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// 胜负判定
+// ══════════════════════════════════════════
+function checkEnd() {
+  if (state.enemy.hp <= 0) {
+    state.finished = true;
+    $resultText.textContent = '战斗胜利';
+    $resultText.className = 'result-text victory';
+    $result.classList.add('show');
+    return true;
+  }
+  if (state.player.hp <= 0) {
+    state.finished = true;
+    $resultText.textContent = '战斗失败';
+    $resultText.className = 'result-text defeat';
+    $result.classList.add('show');
+    return true;
+  }
+  return false;
+}
+
+function restartBattle() {
+  state.player.hp = state.player.maxHp;
+  state.enemy.hp  = state.enemy.maxHp;
+  state.finished  = false;
+  state.cooldowns = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  updateHp();
+  $log.innerHTML = '';
+  $result.classList.remove('show');
+  // 清除冷却 UI
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('skill' + i).classList.remove('on-cooldown');
+    document.getElementById('cd' + i).textContent = '';
+  }
+  addLog('战斗开始！', 'system');
+}
+
+// 初始化
+addLog('战斗开始！', 'system');
+</script>
+</body>
+</html>

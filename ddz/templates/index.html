@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>斗地主 - 登录</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body class="auth-page">
@@ -52,7 +52,7 @@
 
             <div class="auth-footer">
                 <span>还没有账号？</span>
-                <a href="/register_page" class="auth-link">立即注册</a>
+                <a href="/ddz/register_page" class="auth-link">立即注册</a>
             </div>
 
             <div id="msg" class="auth-msg"></div>
@@ -77,7 +77,7 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-loading">登录中...</span>';
 
-            fetch('/login', {
+            fetch('/ddz/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: u, password: p})
@@ -87,7 +87,7 @@
                 showMsg(d.message, d.success);
                 if (d.success) {
                     setTimeout(() => {
-                        window.open('/nav', '_blank');
+                        window.open('/ddz/nav', '_blank');
                         document.getElementById('username').value = '';
                         document.getElementById('password').value = '';
                         document.getElementById('msg').classList.remove('show');

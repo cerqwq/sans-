@@ -9,7 +9,7 @@ import os
 import bcrypt
 from contextlib import contextmanager
 
-DB_PATH = os.environ.get('DB_PATH', 'database.db')
+DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.db'))
 
 
 @contextmanager
@@ -149,7 +149,7 @@ def update_game_result(username, result):
             conn.execute('''
                 UPDATE doudizhu_data
                 SET losses = losses + 1, total_games = total_games + 1,
-                    coins = coins - 50, updated_at = CURRENT_TIMESTAMP
+                    coins = MAX(0, coins - 50), updated_at = CURRENT_TIMESTAMP
                 WHERE username = ?
             ''', (username,))
         elif result == 'draw':
@@ -165,7 +165,7 @@ def update_coins(username, amount):
     with get_db() as conn:
         conn.execute('''
             UPDATE doudizhu_data
-            SET coins = coins + ?, updated_at = CURRENT_TIMESTAMP
+            SET coins = MAX(0, coins + ?), updated_at = CURRENT_TIMESTAMP
             WHERE username = ?
         ''', (amount, username))
 
@@ -251,7 +251,6 @@ def add_user_by_admin(username, password, coins=1000):
 
 def save_room(room_code, state, room_data):
     """保存房间状态到数据库"""
-    import json
     with get_db() as conn:
         conn.execute('''
             INSERT OR REPLACE INTO game_rooms (room_code, state, room_data, updated_at)
@@ -261,7 +260,6 @@ def save_room(room_code, state, room_data):
 
 def load_room(room_code):
     """从数据库加载房间状态"""
-    import json
     with get_db() as conn:
         row = conn.execute(
             'SELECT room_data FROM game_rooms WHERE room_code = ?',
@@ -280,7 +278,6 @@ def delete_room(room_code):
 
 def get_active_rooms():
     """获取所有活跃房间"""
-    import json
     with get_db() as conn:
         rows = conn.execute(
             "SELECT room_code, state, room_data FROM game_rooms WHERE state != 'ended'"

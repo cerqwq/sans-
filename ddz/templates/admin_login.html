@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理员登录</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body class="lobby-bg">
@@ -27,7 +27,7 @@
 
             <div id="msg" class="toast" style="position:static;margin-top:16px;display:none;transform:none;"></div>
 
-            <a href="/nav" style="display:block;text-align:center;margin-top:16px;color:var(--text-muted);font-size:13px;text-decoration:none;">← 返回导航</a>
+            <a href="/ddz/nav" style="display:block;text-align:center;margin-top:16px;color:var(--text-muted);font-size:13px;text-decoration:none;">← 返回导航</a>
         </div>
     </div>
 
@@ -44,7 +44,7 @@
             const p = document.getElementById('password').value;
             if (!u || !p) { showMsg('请输入账号和密码！', false); return; }
 
-            fetch('/api/admin_login', {
+            fetch('/ddz/api/admin_login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: u, password: p})
@@ -52,7 +52,7 @@
             .then(r => r.json())
             .then(d => {
                 showMsg(d.message, d.success);
-                if (d.success) setTimeout(() => location.href = '/admin', 1000);
+                if (d.success) setTimeout(() => location.href = '/ddz/admin', 1000);
             })
             .catch(() => showMsg('网络错误！', false));
         }

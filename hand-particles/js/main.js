@@ -6,8 +6,10 @@ const video = document.getElementById('video');
 const statusEl = document.getElementById('status');
 
 let particles;
+let handDetector;
 let currentOpenness = 0;
 let lastTime = performance.now();
+let frameId = null;
 
 function initColorPicker() {
   const picker = document.getElementById('colorPicker');
@@ -20,43 +22,82 @@ function initColorPicker() {
   });
 }
 
-async function main() {
-  particles = new ParticleSystem(canvas);
-  initColorPicker();
+function initSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  const toggle = document.getElementById('settingsToggle');
 
-  window.addEventListener('resize', () => particles.resize());
+  if (toggle && panel) {
+    toggle.addEventListener('click', () => {
+      panel.classList.toggle('open');
+    });
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== toggle) {
+        panel.classList.remove('open');
+      }
+    });
+  }
 
-  statusEl.textContent = '正在启动摄像头和手势模型...';
+  // Particle count slider
+  const countSlider = document.getElementById('particleCount');
+  const countLabel = document.getElementById('particleCountLabel');
+  if (countSlider) {
+    countSlider.addEventListener('input', () => {
+      const val = parseInt(countSlider.value);
+      particles.setParticleCount(val);
+      if (countLabel) countLabel.textContent = val;
+    });
+  }
 
-  new HandDetector(video, (result) => {
-    particles.setGesture(result.gesture);
+  // Shape selector
+  const shapeSelect = document.getElementById('shapeSelect');
+  if (shapeSelect) {
+    shapeSelect.addEventListener('change', () => {
+      particles.setShape(shapeSelect.value);
+    });
+  }
 
-    if (result.gesture === 'none') {
-      statusEl.textContent = '未检测到手';
-    } else if (result.gesture === 'sword') {
-      statusEl.textContent = '🗡 剑指 — 万剑散开';
-    } else if (result.gesture === 'open') {
-      statusEl.textContent = '✋ 张开手掌 — 黑洞吸引';
-    } else {
-      statusEl.textContent = '✊ 握拳 — 万剑归宗';
-    }
+  // Effect toggles
+  const toggleTrails = document.getElementById('toggleTrails');
+  const toggleGlow = document.getElementById('toggleGlow');
+  const toggleFlash = document.getElementById('toggleFlash');
 
-    const px = (1 - result.palmX) * particles.w;
-    const py = result.palmY * particles.h;
-    particles.setTarget(px, py);
+  if (toggleTrails) {
+    toggleTrails.addEventListener('change', () => {
+      particles.effects.trails = toggleTrails.checked;
+    });
+  }
+  if (toggleGlow) {
+    toggleGlow.addEventListener('change', () => {
+      particles.effects.glow = toggleGlow.checked;
+    });
+  }
+  if (toggleFlash) {
+    toggleFlash.addEventListener('change', () => {
+      particles.effects.scatterFlash = toggleFlash.checked;
+    });
+  }
 
-    let targetOpen;
-    if (result.gesture === 'sword') {
-      targetOpen = 0.7;
-    } else if (result.gesture === 'none') {
-      targetOpen = 0.5;
-    } else {
-      targetOpen = result.confidence;
-    }
-    particles.setTargetOpenness(targetOpen);
-  });
+  // FPS display (updated in tick)
+  return document.getElementById('fpsDisplay');
+}
 
-  requestAnimationFrame(tick);
+let fpsDisplayEl = null;
+let fpsUpdateTimer = 0;
+
+function cleanup() {
+  if (frameId !== null) {
+    cancelAnimationFrame(frameId);
+    frameId = null;
+  }
+  if (handDetector) {
+    handDetector.destroy();
+    handDetector = null;
+  }
+  if (particles) {
+    particles.destroy();
+    particles = null;
+  }
 }
 
 function tick(now) {
@@ -70,7 +111,79 @@ function tick(now) {
   particles.update(dt);
   particles.draw();
 
-  requestAnimationFrame(tick);
+  // Update FPS display periodically
+  fpsUpdateTimer += dt;
+  if (fpsUpdateTimer > 0.5 && fpsDisplayEl) {
+    fpsDisplayEl.textContent = particles.getFPS() + ' FPS';
+    fpsUpdateTimer = 0;
+  }
+
+  frameId = requestAnimationFrame(tick);
 }
 
-main();
+const GESTURE_STATUS = {
+  none: '未检测到手',
+  sword: '剑指 - 万剑散开',
+  open: '张开手掌 - 黑洞吸引',
+  fist: '握拳 - 万剑归宗',
+  point: '食指指向 - 粒子射流',
+  peace: '双指 V 形 - 双流分射',
+};
+
+async function main() {
+  particles = new ParticleSystem(canvas);
+  initColorPicker();
+  fpsDisplayEl = initSettingsPanel();
+
+  window.addEventListener('resize', () => particles.resize());
+
+  statusEl.textContent = '正在启动摄像头和手势模型...';
+
+  handDetector = new HandDetector(video, (result) => {
+    particles.setGesture(result.gesture);
+
+    // Update status text
+    statusEl.textContent = GESTURE_STATUS[result.gesture] || '未知手势';
+
+    // Mirror X coordinate
+    const px = (1 - result.palmX) * particles.w;
+    const py = result.palmY * particles.h;
+    particles.setTarget(px, py);
+
+    // Pass pointing angle to particle system
+    if (result.pointAngle !== undefined) {
+      particles.setPointAngle(result.pointAngle);
+    }
+
+    // Compute target openness per gesture
+    let targetOpen;
+    switch (result.gesture) {
+      case 'sword':
+        targetOpen = 0.7;
+        break;
+      case 'point':
+        targetOpen = 0.3;
+        break;
+      case 'peace':
+        targetOpen = 0.4;
+        break;
+      case 'none':
+        targetOpen = 0.5;
+        break;
+      default:
+        targetOpen = result.confidence;
+    }
+    particles.setTargetOpenness(targetOpen);
+  });
+
+  lastTime = performance.now();
+  frameId = requestAnimationFrame(tick);
+}
+
+main().catch(err => {
+  console.error('Initialization failed:', err);
+  statusEl.textContent = '初始化失败: ' + err.message;
+  statusEl.style.color = '#ff4444';
+});
+
+window.addEventListener('beforeunload', cleanup);

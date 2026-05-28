@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>联机大厅</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body class="lobby-bg">
@@ -12,13 +12,13 @@
         <h1 class="nav-header-title" style="text-align:center;font-size:28px;margin-bottom:28px;">🎮 联机大厅</h1>
 
         <div class="lobby-section" id="createSection">
-            <h2 style="color:var(--green);">🏠 创建房间</h2>
+            <h2 style="color:var(--jade);">🏠 创建房间</h2>
             <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">创建新房间，邀请好友一起玩</p>
             <button class="btn btn-green" onclick="createRoom()">创建房间</button>
         </div>
 
         <div class="lobby-section" id="joinSection">
-            <h2 style="color:var(--blue);">🔑 加入房间</h2>
+            <h2 style="color:var(--gold);">🔑 加入房间</h2>
             <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">输入房间码加入游戏</p>
             <div style="display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;">
                 <input type="text" class="form-input" id="roomCodeInput" placeholder="输入房间码"
@@ -38,7 +38,7 @@
         </div>
 
         <div style="text-align:center;margin-top:24px;">
-            <a href="/nav" class="btn btn-ghost">← 返回导航</a>
+            <a href="/ddz/nav" class="btn btn-ghost">← 返回导航</a>
         </div>
     </div>
 
@@ -68,7 +68,7 @@
 
         function startGame() {
             if (!currentRoom) return;
-            window.location.href = '/doudizhu_online?room=' + currentRoom;
+            window.location.href = '/ddz/doudizhu_online?room=' + currentRoom;
         }
 
         socket.on('room_created', d => {
@@ -104,11 +104,23 @@
             const list = document.getElementById('playerList');
             list.innerHTML = '';
             players.forEach((p, i) => {
-                list.innerHTML += `<div class="player-item">
-                    <div class="player-item-avatar">${i===0?'👑':'👤'}</div>
-                    <div class="player-item-name">${p.username}</div>
-                    ${i===0?'<div class="player-item-badge">房主</div>':''}
-                </div>`;
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                const avatar = document.createElement('div');
+                avatar.className = 'player-item-avatar';
+                avatar.textContent = i===0 ? '👑' : '👤';
+                const name = document.createElement('div');
+                name.className = 'player-item-name';
+                name.textContent = p.username;
+                item.appendChild(avatar);
+                item.appendChild(name);
+                if (i===0) {
+                    const badge = document.createElement('div');
+                    badge.className = 'player-item-badge';
+                    badge.textContent = '房主';
+                    item.appendChild(badge);
+                }
+                list.appendChild(item);
             });
             const s = document.getElementById('waitStatus');
             if (players.length >= 3) s.textContent = '✅ 玩家已满，点击进入游戏！';
@@ -117,7 +129,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+            fetch('/ddz/api/get_user_data').then(r=>r.json()).then(d=>{
                 if (d.success) {
                     const s = document.createElement('span');
                     s.id='usernameDisplay'; s.style.display='none';

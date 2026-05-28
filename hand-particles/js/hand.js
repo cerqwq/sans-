@@ -5,6 +5,9 @@ const GESTURE_STABLE_THRESHOLD = 3;
 const SWORD_FINGER_THRESHOLD = 0.4;
 const OPEN_THRESHOLD = 0.55;
 const FIST_THRESHOLD = 0.4;
+const POINT_INDEX_THRESHOLD = 0.5;
+const POINT_OTHER_THRESHOLD = 0.35;
+const PEACE_SPREAD_THRESHOLD = 0.06; // min distance between index and middle tips for peace vs sword
 
 export class HandDetector {
   constructor(videoEl, onResult) {
@@ -22,29 +25,29 @@ export class HandDetector {
 
   _init() {
     try {
-      const hands = new Hands({
+      this._hands = new Hands({
         locateFile: (file) => `vendor/${file}`,
       });
 
-      hands.setOptions({
+      this._hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
         minDetectionConfidence: 0.7,
         minTrackingConfidence: 0.6,
       });
 
-      hands.onResults((results) => this._process(results));
+      this._hands.onResults((results) => this._process(results));
 
-      const cam = new Camera(this.video, {
+      this._cam = new Camera(this.video, {
         onFrame: async () => {
-          await hands.send({ image: this.video });
+          await this._hands.send({ image: this.video });
         },
         width: 640,
         height: 480,
       });
 
       // 监听摄像头权限错误
-      cam.start().catch(err => {
+      this._cam.start().catch(err => {
         console.error('Camera access error:', err);
         const statusEl = document.getElementById('status');
         if (statusEl) {
@@ -67,6 +70,17 @@ export class HandDetector {
         statusEl.textContent = '手势识别初始化失败';
         statusEl.style.color = '#ff4444';
       }
+    }
+  }
+
+  destroy() {
+    if (this._hands) {
+      this._hands.close();
+      this._hands = null;
+    }
+    if (this._cam) {
+      this._cam.stop();
+      this._cam = null;
     }
   }
 
@@ -102,11 +116,27 @@ export class HandDetector {
 
     this._opennessSmooth += (avgRatio - this._opennessSmooth) * OPENNESS_SMOOTHING;
 
-    const isSword = index > SWORD_FINGER_THRESHOLD && middle > SWORD_FINGER_THRESHOLD &&
-                   ring < 0.45 && pinky < 0.45 && extendedCount === 2;
+    // Pointing: only index finger extended, others curled
+    const isPoint = index > POINT_INDEX_THRESHOLD &&
+                    middle < POINT_OTHER_THRESHOLD &&
+                    ring < POINT_OTHER_THRESHOLD &&
+                    pinky < POINT_OTHER_THRESHOLD;
+
+    // Two-finger gesture: index + middle extended, ring + pinky down
+    const isTwoFinger = index > SWORD_FINGER_THRESHOLD && middle > SWORD_FINGER_THRESHOLD &&
+                        ring < 0.45 && pinky < 0.45 && extendedCount === 2;
+
+    // Distinguish peace (spread fingers) from sword (together)
+    const fingerSpread = isTwoFinger ? this._dist(lm[8], lm[12]) : 0;
+    const isPeace = isTwoFinger && fingerSpread > PEACE_SPREAD_THRESHOLD;
+    const isSword = isTwoFinger && fingerSpread <= PEACE_SPREAD_THRESHOLD;
 
     let rawGesture;
-    if (isSword) {
+    if (isPoint) {
+      rawGesture = 'point';
+    } else if (isPeace) {
+      rawGesture = 'peace';
+    } else if (isSword) {
       rawGesture = 'sword';
     } else if (this._opennessSmooth > OPEN_THRESHOLD) {
       rawGesture = 'open';
@@ -137,6 +167,14 @@ export class HandDetector {
 
     this.state.gesture = this._prevGesture;
     this.state.confidence = this._opennessSmooth;
+
+    // Compute pointing direction (index finger MCP → tip)
+    if (this._prevGesture === 'point' || this._prevGesture === 'peace') {
+      const dx = lm[8].x - lm[5].x;
+      const dy = lm[8].y - lm[5].y;
+      this.state.pointAngle = Math.atan2(dy, dx) + Math.PI; // +PI to flip (camera is mirrored)
+    }
+
     this.onResult(this.state);
   }
 

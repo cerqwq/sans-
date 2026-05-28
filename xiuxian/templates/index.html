@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>鬼谷修仙录</title>
+  <!-- 字体已移至本地 CSS @font-face 或系统字体回退，避免 Google Fonts 超时 -->
+  <link rel="stylesheet" href="/xiuxian/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>仙</text></svg>">
+</head>
+<body>
+  <!-- 背景层：水墨画布 + 雾气粒子 -->
+  <canvas id="inkCanvas"></canvas>
+  <div class="mist-layer"></div>
+  <div class="paper-grain"></div>
+
+  <!-- ====== 角色创建 ====== -->
+  <div id="creationScreen" class="screen active">
+    <div class="creation-scroll">
+      <div class="scroll-top"></div>
+      <div class="scroll-body">
+        <div class="creation-header">
+          <div class="title-brush-stroke"></div>
+          <h1 class="game-title">鬼谷修仙录</h1>
+          <p class="game-subtitle">一念入道 · 万劫不悔</p>
+          <div class="title-ornament"></div>
+        </div>
+
+        <div class="creation-form">
+          <div class="form-group">
+            <label class="form-label">道号</label>
+            <div class="input-wrapper">
+              <input type="text" id="charName" class="form-input" placeholder="取一个响亮的名号" maxlength="10">
+              <div class="input-brush-underline"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">掷骰问天</label>
+            <div class="dice-area">
+              <button id="btnDice" class="btn-dice">掷骰</button>
+              <div class="dice-result" id="diceResult">点击骰子，天命所归</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">五行灵根 <span class="hint">（可多选，骰子会随机决定）</span></label>
+            <div class="element-picker" id="elementPicker">
+              <button class="element-btn" data-element="金" title="金 — 攻击型">
+                <span class="element-glyph">金</span>
+                <span class="element-label">金刚</span>
+                <div class="element-aura"></div>
+              </button>
+              <button class="element-btn" data-element="木" title="木 — 恢复型">
+                <span class="element-glyph">木</span>
+                <span class="element-label">长生</span>
+                <div class="element-aura"></div>
+              </button>
+              <button class="element-btn" data-element="水" title="水 — 灵力型">
+                <span class="element-glyph">水</span>
+                <span class="element-label">玄水</span>
+                <div class="element-aura"></div>
+              </button>
+              <button class="element-btn" data-element="火" title="火 — 爆发型">
+                <span class="element-glyph">火</span>
+                <span class="element-label">烈焰</span>
+                <div class="element-aura"></div>
+              </button>
+              <button class="element-btn" data-element="土" title="土 — 防御型">
+                <span class="element-glyph">土</span>
+                <span class="element-label">厚土</span>
+                <div class="element-aura"></div>
+              </button>
+            </div>
+            <div class="elem-bonus-list" id="elemBonusList"></div>
+          </div>
+
+          <div class="creation-preview" id="creationPreview">
+            <div class="preview-row"><span>根骨</span><span id="prevGengu">—</span></div>
+            <div class="preview-row"><span>悟性</span><span id="prevWuxing">—</span></div>
+            <div class="preview-row"><span>气运</span><span id="prevQiyun">—</span></div>
+            <div class="preview-row"><span>魅力</span><span id="prevMeili">—</span></div>
+            <div class="preview-row total"><span>合计</span><span id="prevTotal">—</span></div>
+          </div>
+
+          <button id="btnCreate" class="btn-seal">
+            <span class="seal-text">踏入仙途</span>
+            <div class="seal-stamp"></div>
+          </button>
+          <button id="btnLoad" class="btn-brush" style="display:none;">继续修炼</button>
+        </div>
+      </div>
+      <div class="scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 主游戏界面 ====== -->
+  <div id="gameScreen" class="screen">
+    <!-- 环境粒子 -->
+    <div id="ambientParticles" class="ambient-particles"></div>
+    <!-- 顶部状态栏 — 卷轴式 -->
+    <header class="top-bar">
+      <div class="realm-badge">
+        <div class="realm-seal" id="realmIcon">练</div>
+        <div class="realm-info">
+          <span class="realm-name" id="realmText">练气初期</span>
+          <span class="realm-desc">初入仙途</span>
+        </div>
+      </div>
+
+      <div class="status-bars">
+        <div class="stat-bar">
+          <span class="stat-label">气</span>
+          <div class="bar-track"><div class="bar-fill hp" id="hpBar" style="width:100%"></div></div>
+          <span class="stat-val" id="hpValue">100/100</span>
+        </div>
+        <div class="stat-bar">
+          <span class="stat-label">灵</span>
+          <div class="bar-track"><div class="bar-fill mp" id="mpBar" style="width:100%"></div></div>
+          <span class="stat-val" id="mpValue">50/50</span>
+        </div>
+        <div class="stat-bar">
+          <span class="stat-label">修</span>
+          <div class="bar-track"><div class="bar-fill exp" id="expBar" style="width:0%"></div></div>
+          <span class="stat-val" id="expValue">0/100</span>
+        </div>
+      </div>
+
+      <div class="top-stats">
+        <div class="top-stat"><span class="ts-label">寿元</span><span class="ts-val" id="lifespanValue">150</span></div>
+        <div class="top-stat"><span class="ts-label">灵石</span><span class="ts-val" id="coinsValue">100</span></div>
+        <div class="top-stat"><span class="ts-label">年龄</span><span class="ts-val" id="ageValue">16</span></div>
+      </div>
+
+      <button class="btn-icon" id="btnSave" title="存档">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      </button>
+      <button class="btn-icon" id="btnSettings" title="设置">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+      <button class="btn-icon" id="btnHelp" title="帮助">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="game-main">
+      <!-- 左侧：竹简面板 -->
+      <aside class="bamboo-panel">
+        <div class="bamboo-scroll">
+          <section class="panel-section">
+            <h3 class="section-title">灵根</h3>
+            <div class="element-root">
+              <span class="element-glyph" id="elementGlyph">火</span>
+              <span class="element-name" id="elementName">烈焰灵根</span>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">属性</h3>
+            <div class="stat-grid">
+              <div class="stat-item"><span class="si-name">根骨</span><span class="si-val" id="statGengu">—</span></div>
+              <div class="stat-item"><span class="si-name">悟性</span><span class="si-val" id="statWuxing">—</span></div>
+              <div class="stat-item"><span class="si-name">气运</span><span class="si-val" id="statQiyun">—</span></div>
+              <div class="stat-item"><span class="si-name">魅力</span><span class="si-val" id="statMeili">—</span></div>
+              <div class="stat-item combat-stat"><span class="si-name">攻击</span><span class="si-val" id="statAttack">—</span></div>
+              <div class="stat-item combat-stat"><span class="si-name">防御</span><span class="si-val" id="statDefense">—</span></div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">装备</h3>
+            <div class="equip-slots">
+              <div class="equip-slot"><span class="es-label">武器</span><span class="es-val" id="equipWeapon">—</span></div>
+              <div class="equip-slot"><span class="es-label">护甲</span><span class="es-val" id="equipArmor">—</span></div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">技能</h3>
+            <div class="skill-list" id="skillList"></div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">功法</h3>
+            <div class="technique-list" id="techniqueList">
+              <div class="empty-hint">尚未领悟功法</div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">神通</h3>
+            <div class="ability-list" id="abilityList">
+              <div class="empty-hint">尚未领悟神通</div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">所在</h3>
+            <div class="location-card">
+              <span class="loc-name" id="locationName">青云镇</span>
+              <span class="loc-desc" id="locationDesc">一处宁静的小镇</span>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <h3 class="section-title">战绩</h3>
+            <div class="stat-grid">
+              <div class="stat-item"><span class="si-name">击杀</span><span class="si-val" id="statKills">0</span></div>
+              <div class="stat-item"><span class="si-name">探索</span><span class="si-val" id="statExplores">0</span></div>
+              <div class="stat-item"><span class="si-name">修炼</span><span class="si-val" id="statCultivates">0</span></div>
+              <div class="stat-item"><span class="si-name">成就</span><span class="si-val" id="statAchievements">0</span></div>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <!-- 中央：宣纸日志 -->
+      <section class="xuan-paper">
+        <div class="paper-edge left"></div>
+        <div class="paper-content">
+          <div class="game-log" id="gameLog">
+            <div class="log-entry welcome">你踏入了修仙之路……</div>
+          </div>
+        </div>
+        <div class="paper-edge right"></div>
+
+        <!-- 操作按钮 — 印章式 -->
+        <nav class="seal-bar">
+          <button class="seal-btn cultivate" id="btnCultivate">
+            <span class="seal-char">修</span>
+            <span class="seal-label">修炼</span>
+          </button>
+          <button class="seal-btn explore" id="btnExplore">
+            <span class="seal-char">探</span>
+            <span class="seal-label">探索</span>
+          </button>
+          <button class="seal-btn breakthrough" id="btnBreakthrough" style="display:none;">
+            <span class="seal-char">破</span>
+            <span class="seal-label">突破</span>
+          </button>
+          <button class="seal-btn ascend" id="btnAscend" style="display:none;">
+            <span class="seal-char">升</span>
+            <span class="seal-label">飞升</span>
+          </button>
+          <button class="seal-btn inventory" id="btnInventory">
+            <span class="seal-char">包</span>
+            <span class="seal-label">背包</span>
+          </button>
+          <button class="seal-btn npc" id="btnNPC">
+            <span class="seal-char">人</span>
+            <span class="seal-label">交谈</span>
+          </button>
+          <button class="seal-btn quest" id="btnQuest">
+            <span class="seal-char">任</span>
+            <span class="seal-label">任务</span>
+          </button>
+          <button class="seal-btn achievement" id="btnAchievement">
+            <span class="seal-char">成</span>
+            <span class="seal-label">成就</span>
+          </button>
+          <button class="seal-btn bestiary" id="btnBestiary">
+            <span class="seal-char">鉴</span>
+            <span class="seal-label">图鉴</span>
+          </button>
+          <button class="seal-btn craft" id="btnCraft">
+            <span class="seal-char">炼</span>
+            <span class="seal-label">炼丹</span>
+          </button>
+          <button class="seal-btn move" id="btnMove">
+            <span class="seal-char">行</span>
+            <span class="seal-label">移动</span>
+          </button>
+          <button class="seal-btn rest" id="btnRest">
+            <span class="seal-char">息</span>
+            <span class="seal-label">休息</span>
+          </button>
+          <button class="seal-btn sect" id="btnSect">
+            <span class="seal-char">宗</span>
+            <span class="seal-label">宗门</span>
+          </button>
+          <button class="seal-btn pet" id="btnPet">
+            <span class="seal-char">宠</span>
+            <span class="seal-label">灵宠</span>
+          </button>
+          <button class="seal-btn dungeon" id="btnDungeon">
+            <span class="seal-char">秘</span>
+            <span class="seal-label">秘境</span>
+          </button>
+          <button class="seal-btn boss" id="btnWorldBoss">
+            <span class="seal-char">魔</span>
+            <span class="seal-label">世界Boss</span>
+          </button>
+          <button class="seal-btn enhance" id="btnEnhance">
+            <span class="seal-char">铸</span>
+            <span class="seal-label">强化</span>
+          </button>
+          <button class="seal-btn auction" id="btnAuction">
+            <span class="seal-char">拍</span>
+            <span class="seal-label">拍卖行</span>
+          </button>
+        </nav>
+      </section>
+    </main>
+  </div>
+
+  <!-- ====== 弹窗：背包 ====== -->
+  <div class="modal" id="inventoryModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>乾坤袋</h2>
+          <button class="modal-close" onclick="closeModal('inventoryModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="inventory-grid" id="inventoryGrid"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：NPC ====== -->
+  <div class="modal" id="npcModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2 id="npcModalTitle">对话</h2>
+          <button class="modal-close" onclick="closeModal('npcModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="npc-dialogue" id="npcDialogue"></div>
+          <div class="npc-shop" id="npcShop"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：移动 ====== -->
+  <div class="modal" id="moveModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>天下地图</h2>
+          <button class="modal-close" onclick="closeModal('moveModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="region-list" id="regionList"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：任务 ====== -->
+  <div class="modal" id="questModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>任务</h2>
+          <button class="modal-close" onclick="closeModal('questModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="quest-tabs">
+            <button class="quest-tab active" data-tab="active">进行中</button>
+            <button class="quest-tab" data-tab="available">可接取</button>
+          </div>
+          <div class="quest-list" id="questList"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：成就 ====== -->
+  <div class="modal" id="achievementModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>成就</h2>
+          <button class="modal-close" onclick="closeModal('achievementModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="achievement-grid" id="achievementGrid"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：设置 ====== -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>设置</h2>
+          <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="settings-group">
+            <h3 class="settings-title">显示设置</h3>
+            <div class="setting-item">
+              <span class="setting-label">动画速度</span>
+              <div class="setting-control">
+                <input type="range" id="animSpeed" min="0.5" max="2" step="0.1" value="1">
+                <span class="setting-value" id="animSpeedValue">1x</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <span class="setting-label">字体大小</span>
+              <div class="setting-control">
+                <input type="range" id="fontSize" min="12" max="20" step="1" value="14">
+                <span class="setting-value" id="fontSizeValue">14px</span>
+              </div>
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3 class="settings-title">游戏设置</h3>
+            <div class="setting-item">
+              <span class="setting-label">自动存档</span>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="autoSave" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-item">
+              <span class="setting-label">显示教程</span>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="showTutorial">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3 class="settings-title">存档管理</h3>
+            <div class="setting-item">
+              <button class="settings-btn" id="btnExportSave">导出存档</button>
+              <button class="settings-btn" id="btnImportSave">导入存档</button>
+            </div>
+            <div class="setting-item">
+              <button class="settings-btn danger" id="btnDeleteSave">删除存档</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3 class="settings-title">转世重生</h3>
+            <p class="help-text" style="margin-bottom:10px;font-size:12px;">达到筑基期以上可转世重生，保留成就和图鉴，获得永久加成。</p>
+            <div class="setting-item">
+              <button class="settings-btn rebirth" id="btnRebirth">转世重生</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：帮助 ====== -->
+  <div class="modal" id="helpModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>修仙指南</h2>
+          <button class="modal-close" onclick="closeModal('helpModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="help-sections">
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">修</span>修炼</h3>
+              <p class="help-text">点击「修炼」消耗时间积累修为，修为满后可尝试突破境界。离线时也会自动积累少量修为。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">探</span>探索</h3>
+              <p class="help-text">探索当前区域可能遭遇怪物、发现宝物或触发奇遇。不同区域难度不同，量力而行。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">破</span>突破</h3>
+              <p class="help-text">修为达到上限后可尝试突破，成功率取决于境界和辅助丹药。失败会损失部分修为。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">战</span>战斗</h3>
+              <p class="help-text">回合制战斗，可普攻、防御、释放技能或神通。气运越高暴击率越高。五行相克会造成额外伤害。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">人</span>NPC</h3>
+              <p class="help-text">与NPC交谈可购买物品、学习功法神通、接取任务。提升好感度可解锁特殊对话和奖励。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">任</span>任务</h3>
+              <p class="help-text">NPC发布的任务，完成后可获得灵石、经验和好感度奖励。部分任务有时间限制。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">根</span>五行灵根</h3>
+              <div class="help-elements">
+                <span class="he-tag metal">金 · 攻击</span>
+                <span class="he-tag wood">木 · 恢复</span>
+                <span class="he-tag water">水 · 灵力</span>
+                <span class="he-tag fire">火 · 爆发</span>
+                <span class="he-tag earth">土 · 防御</span>
+              </div>
+              <p class="help-text">五行相克：金克木、木克土、土克水、水克火、火克金。克制时伤害+50%。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">炼</span>炼丹合成</h3>
+              <p class="help-text">收集材料后可在炼丹界面合成丹药和法器。高级配方需要稀有材料，击败精英怪物可获得。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">鉴</span>怪物图鉴</h3>
+              <p class="help-text">探索中遭遇的怪物会记录在图鉴中。稀有精英怪物（五行灵蝶、噬魂蝠王、九尾妖狐、上古石魔）有更好掉落。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">轮</span>转世重生</h3>
+              <p class="help-text">达到筑基期后可转世重生，重置修为但获得永久加成。转世点数基于你的成就和修为。</p>
+            </div>
+            <div class="help-section">
+              <h3 class="help-title"><span class="help-icon">窍</span>快捷键</h3>
+              <div class="help-keys">
+                <div class="help-key"><kbd>C</kbd> 修炼</div>
+                <div class="help-key"><kbd>E</kbd> 探索</div>
+                <div class="help-key"><kbd>B</kbd> 突破</div>
+                <div class="help-key"><kbd>I</kbd> 背包</div>
+                <div class="help-key"><kbd>R</kbd> 休息</div>
+                <div class="help-key"><kbd>S</kbd> 存档</div>
+                <div class="help-key"><kbd>H</kbd> 帮助</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：图鉴 ====== -->
+  <div class="modal" id="bestiaryModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>怪物图鉴</h2>
+          <button class="modal-close" onclick="closeModal('bestiaryModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="bestiary-grid" id="bestiaryGrid"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：炼丹 ====== -->
+  <div class="modal" id="craftModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>炼丹炉</h2>
+          <button class="modal-close" onclick="closeModal('craftModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="craft-tabs">
+            <button class="craft-tab active" data-tab="all">全部</button>
+            <button class="craft-tab" data-tab="consumable">丹药</button>
+            <button class="craft-tab" data-tab="weapon">法器</button>
+            <button class="craft-tab" data-tab="armor">护甲</button>
+          </div>
+          <div class="craft-list" id="craftList"></div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：宗门 ====== -->
+  <div class="modal" id="sectModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>仙门宗派</h2>
+          <button class="modal-close" onclick="closeModal('sectModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="sect-info" id="sectInfo">
+            <div class="sect-list" id="sectList"></div>
+          </div>
+          <div class="sect-detail" id="sectDetail" style="display:none;">
+            <div class="sect-header-row">
+              <h3 class="sect-name" id="sectName"></h3>
+              <span class="sect-rank" id="sectRank"></span>
+            </div>
+            <div class="sect-desc" id="sectDesc"></div>
+            <div class="sect-stats" id="sectStats"></div>
+            <div class="sect-members" id="sectMembers"></div>
+            <div class="sect-tasks" id="sectTasks"></div>
+            <div class="sect-actions">
+              <button class="btn-brush" id="btnSectTask">接取宗门任务</button>
+              <button class="btn-brush danger" id="btnLeaveSect">退出宗门</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：灵宠 ====== -->
+  <div class="modal" id="petModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>灵宠阁</h2>
+          <button class="modal-close" onclick="closeModal('petModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="pet-tabs">
+            <button class="pet-tab active" data-tab="list">我的灵宠</button>
+            <button class="pet-tab" data-tab="catch">捕获</button>
+          </div>
+          <div class="pet-list" id="petList"></div>
+          <div class="pet-catch-area" id="petCatchArea" style="display:none;">
+            <div class="pet-wild" id="petWild"></div>
+            <button class="btn-seal" id="btnCatchPet">施展捕获术</button>
+          </div>
+          <div class="pet-detail" id="petDetail" style="display:none;">
+            <div class="pet-avatar" id="petAvatar"></div>
+            <div class="pet-info" id="petInfo"></div>
+            <div class="pet-skills" id="petSkills"></div>
+            <div class="pet-actions">
+              <button class="btn-brush" id="btnFeedPet">喂养</button>
+              <button class="btn-brush" id="btnEvolvePet">进化</button>
+              <button class="btn-brush" id="btnPetBattle">设为出战</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：秘境 ====== -->
+  <div class="modal" id="dungeonModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>秘境副本</h2>
+          <button class="modal-close" onclick="closeModal('dungeonModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="dungeon-list" id="dungeonList"></div>
+          <div class="dungeon-progress" id="dungeonProgress" style="display:none;">
+            <div class="dungeon-floor">
+              <span class="floor-label">当前层数</span>
+              <span class="floor-val" id="dungeonFloor">1</span>
+            </div>
+            <div class="dungeon-hp-bar">
+              <div class="dungeon-hp-fill" id="dungeonHpFill" style="width:100%"></div>
+            </div>
+            <div class="dungeon-actions">
+              <button class="btn-seal" id="btnDungeonNext">继续深入</button>
+              <button class="btn-seal" id="btnDungeonReward">领取奖励</button>
+              <button class="btn-brush danger" id="btnDungeonLeave">离开秘境</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：世界BOSS ====== -->
+  <div class="modal" id="worldBossModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>世界BOSS</h2>
+          <button class="modal-close" onclick="closeModal('worldBossModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="boss-info" id="bossInfo">
+            <div class="boss-avatar" id="bossAvatar"></div>
+            <div class="boss-name" id="bossName"></div>
+            <div class="boss-hp-bar">
+              <div class="boss-hp-fill" id="bossHpFill" style="width:100%"></div>
+              <span class="boss-hp-text" id="bossHpText"></span>
+            </div>
+            <div class="boss-desc" id="bossDesc"></div>
+            <div class="boss-rankings" id="bossRankings"></div>
+            <button class="btn-seal" id="btnAttackBoss">挑战BOSS</button>
+          </div>
+          <div class="boss-empty" id="bossEmpty" style="display:none;">
+            <p>当前没有世界BOSS出没...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：装备强化 ====== -->
+  <div class="modal" id="enhanceModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>铸器阁</h2>
+          <button class="modal-close" onclick="closeModal('enhanceModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="enhance-tabs">
+            <button class="enhance-tab active" data-tab="enhance">强化</button>
+            <button class="enhance-tab" data-tab="gem">镶嵌</button>
+          </div>
+          <div class="enhance-equip-select" id="enhanceEquipSelect">
+            <h3>选择装备</h3>
+            <div class="enhance-equip-list" id="enhanceEquipList"></div>
+          </div>
+          <div class="enhance-panel" id="enhancePanel" style="display:none;">
+            <div class="enhance-preview" id="enhancePreview"></div>
+            <div class="enhance-cost" id="enhanceCost"></div>
+            <button class="btn-seal" id="btnDoEnhance">强化</button>
+          </div>
+          <div class="gem-panel" id="gemPanel" style="display:none;">
+            <div class="gem-socket" id="gemSocket"></div>
+            <div class="gem-list" id="gemList"></div>
+            <button class="btn-seal" id="btnEmbedGem">镶嵌宝石</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：拍卖行 ====== -->
+  <div class="modal" id="auctionModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>天机拍卖行</h2>
+          <button class="modal-close" onclick="closeModal('auctionModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="auction-tabs">
+            <button class="auction-tab active" data-tab="browse">浏览</button>
+            <button class="auction-tab" data-tab="sell">上架</button>
+          </div>
+          <div class="auction-browse" id="auctionBrowse">
+            <div class="auction-list" id="auctionList"></div>
+            <button class="btn-brush" id="btnRefreshAuction">刷新拍品</button>
+          </div>
+          <div class="auction-sell" id="auctionSell" style="display:none;">
+            <div class="auction-sell-list" id="auctionSellList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 全屏战斗场景（赛尔号风格） ====== -->
+  <div id="combatModal" class="combat-fullscreen" style="display:none;">
+    <!-- 战斗场景区（canvas + 叠加UI） -->
+    <div class="combat-scene">
+      <canvas id="combatCanvas"></canvas>
+
+      <!-- 玩家状态（叠加在canvas左下） -->
+      <div class="combat-hud player-hud">
+        <div class="hud-name-row">
+          <span class="hud-name" id="combatPlayerName">你</span>
+          <span class="hud-element-icon" id="combatPlayerElement"></span>
+        </div>
+        <div class="hud-realm" id="combatPlayerRealm"></div>
+        <div class="hud-bars">
+          <div class="hud-bar">
+            <span class="hud-bar-label">气血</span>
+            <div class="hud-bar-track"><div class="hud-bar-fill hp" id="combatHpPlayer" style="width:100%"></div></div>
+            <span class="hud-bar-val" id="combatHpPlayerVal">100/100</span>
+          </div>
+          <div class="hud-bar">
+            <span class="hud-bar-label">灵力</span>
+            <div class="hud-bar-track"><div class="hud-bar-fill mp" id="combatMpPlayer" style="width:100%"></div></div>
+            <span class="hud-bar-val" id="combatMpPlayerVal">50/50</span>
+          </div>
+        </div>
+        <div class="status-effects" id="playerStatusEffects"></div>
+      </div>
+
+      <!-- 敌人状态（叠加在canvas右上） -->
+      <div class="combat-hud enemy-hud">
+        <div class="hud-name-row">
+          <span class="hud-name enemy" id="combatEnemyName">敌人</span>
+          <span class="hud-element-icon" id="combatEnemyElement"></span>
+        </div>
+        <div class="hud-enemy-info" id="combatEnemyInfo"></div>
+        <div class="hud-bars">
+          <div class="hud-bar">
+            <span class="hud-bar-label">气血</span>
+            <div class="hud-bar-track"><div class="hud-bar-fill hp enemy-hp" id="combatHpEnemy" style="width:100%"></div></div>
+            <span class="hud-bar-val" id="combatHpEnemyVal">100/100</span>
+          </div>
+        </div>
+        <div class="status-effects" id="enemyStatusEffects"></div>
+      </div>
+
+      <!-- 回合指示 -->
+      <div class="turn-indicator" id="turnIndicator">你的回合</div>
+      <div class="turn-counter" id="turnCounter">第 1 回合</div>
+
+      <!-- 连击计数器 -->
+      <div class="combo-counter" id="comboCounter"></div>
+
+      <!-- 元素爆发特效容器 -->
+      <div class="element-burst-container" id="elementBurstContainer"></div>
+
+      <!-- 环境粒子容器 -->
+      <div class="combat-particles" id="combatParticles"></div>
+
+      <!-- 战斗日志（叠加在canvas底部） -->
+      <div class="combat-log-float">
+        <div class="combat-log" id="combatLog"></div>
+      </div>
+    </div>
+
+    <!-- 底部卡牌操作区（赛尔号风格） -->
+    <!-- Card tooltip -->
+    <div class="card-tooltip hidden" id="cardTooltip">
+      <div class="card-tooltip-name" id="tooltipName"></div>
+      <div class="card-tooltip-desc" id="tooltipDesc"></div>
+      <div class="card-tooltip-stats" id="tooltipStats"></div>
+    </div>
+    <div class="combat-card-bar" id="combatActions">
+      <!-- 神通卡（最左边，特殊样式） -->
+      <div class="card-column abilities-column" id="abilitiesColumn">
+        <div class="card-column-label">神通</div>
+        <div class="ability-cards" id="abilityCards"></div>
+      </div>
+
+      <!-- 技能卡（中间） -->
+      <div class="card-column skills-column" id="skillsColumn">
+        <div class="card-column-label">技能</div>
+        <div class="skill-cards" id="skillCards"></div>
+      </div>
+
+      <!-- 基础操作卡（最右边） -->
+      <div class="card-column basic-column">
+        <div class="card-column-label">行动</div>
+        <div class="basic-cards">
+          <button class="combat-card basic-card attack-card" onclick="doCombat('attack')">
+            <span class="card-icon">斩</span>
+            <span class="card-name">攻击</span>
+          </button>
+          <button class="combat-card basic-card defend-card" onclick="doCombat('defend')">
+            <span class="card-icon">守</span>
+            <span class="card-name">防御</span>
+          </button>
+          <button class="combat-card basic-card flee-card" onclick="doCombat('flee')">
+            <span class="card-icon">遁</span>
+            <span class="card-name">遁走</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 战斗结果覆盖层 -->
+    <div class="combat-result-overlay hidden" id="combatResult">
+      <div class="victory-rays"></div>
+      <div class="result-content">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-text" id="resultText"></div>
+        <div class="result-rewards" id="resultRewards"></div>
+        <button class="result-btn" id="resultBtn">继续</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 弹窗：突破 ====== -->
+  <div class="modal breakthrough-modal" id="breakthroughModal">
+    <div class="modal-scroll">
+      <div class="modal-scroll-top"></div>
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <h2>突破境界</h2>
+          <button class="modal-close" onclick="closeModal('breakthroughModal')">&times;</button>
+        </div>
+        <div class="modal-content">
+          <div class="breakthrough-info" id="breakthroughInfo"></div>
+          <div class="breakthrough-items" id="breakthroughItems"></div>
+          <button class="btn-seal" id="btnDoBreakthrough">
+            <span class="seal-text">尝试突破</span>
+            <div class="seal-stamp"></div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- ====== 新手引导 ====== -->
+  <div id="tutorialOverlay" class="tutorial-overlay" style="display:none;">
+    <div class="tutorial-highlight" id="tutorialHighlight"></div>
+    <div class="tutorial-tooltip" id="tutorialTooltip">
+      <div class="tutorial-step-indicator" id="tutorialStepIndicator"></div>
+      <p class="tutorial-text" id="tutorialText"></p>
+      <div class="tutorial-actions">
+        <button class="tutorial-btn skip" id="tutorialSkip">跳过引导</button>
+        <button class="tutorial-btn next" id="tutorialNext">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 移动端统计面板 ====== -->
+  <button class="mobile-stats-toggle" id="mobileStatsToggle" title="属性">属</button>
+  <div class="mobile-stats-overlay" id="mobileStatsOverlay"></div>
+  <div class="mobile-stats-panel" id="mobileStatsPanel">
+    <div class="panel-handle"></div>
+    <div class="mobile-stat-section">
+      <div class="mobile-stat-title">灵根</div>
+      <div class="mobile-stat-grid">
+        <div class="mobile-stat-item"><span class="msi-name">灵根</span><span class="msi-val" id="mElementName">—</span></div>
+      </div>
+    </div>
+    <div class="mobile-stat-section">
+      <div class="mobile-stat-title">属性</div>
+      <div class="mobile-stat-grid">
+        <div class="mobile-stat-item"><span class="msi-name">根骨</span><span class="msi-val" id="mStatGengu">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">悟性</span><span class="msi-val" id="mStatWuxing">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">气运</span><span class="msi-val" id="mStatQiyun">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">魅力</span><span class="msi-val" id="mStatMeili">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">攻击</span><span class="msi-val" id="mStatAttack">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">防御</span><span class="msi-val" id="mStatDefense">—</span></div>
+      </div>
+    </div>
+    <div class="mobile-stat-section">
+      <div class="mobile-stat-title">装备</div>
+      <div class="mobile-stat-grid">
+        <div class="mobile-stat-item"><span class="msi-name">武器</span><span class="msi-val" id="mEquipWeapon">—</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">护甲</span><span class="msi-val" id="mEquipArmor">—</span></div>
+      </div>
+    </div>
+    <div class="mobile-stat-section">
+      <div class="mobile-stat-title">技能</div>
+      <div class="mobile-skill-tags" id="mSkillList"></div>
+    </div>
+    <div class="mobile-stat-section">
+      <div class="mobile-stat-title">战绩</div>
+      <div class="mobile-stat-grid">
+        <div class="mobile-stat-item"><span class="msi-name">击杀</span><span class="msi-val" id="mStatKills">0</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">探索</span><span class="msi-val" id="mStatExplores">0</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">修炼</span><span class="msi-val" id="mStatCultivates">0</span></div>
+        <div class="mobile-stat-item"><span class="msi-name">成就</span><span class="msi-val" id="mStatAchievements">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 全局提示 ====== -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+  <script src="/xiuxian/static/audio_data.js"></script>
+  <script src="/xiuxian/static/game.js"></script>
+</body>
+</html>

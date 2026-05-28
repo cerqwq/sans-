@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>斗地主</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body>
     <!-- 音频 -->
-    <audio id="bgMusic" loop><source src="/static/music/background.mp3" type="audio/mpeg"></audio>
-    <audio id="playCardSound"><source src="/static/music/play_card.mp3" type="audio/mpeg"></audio>
-    <audio id="winSound"><source src="/static/music/win.mp3" type="audio/mpeg"></audio>
-    <audio id="loseSound"><source src="/static/music/lose.mp3" type="audio/mpeg"></audio>
+    <audio id="bgMusic" loop><source src="/ddz/static/music/background.mp3" type="audio/mpeg"></audio>
+    <audio id="playCardSound"><source src="/ddz/static/music/play_card.mp3" type="audio/mpeg"></audio>
+    <audio id="winSound"><source src="/ddz/static/music/win.mp3" type="audio/mpeg"></audio>
+    <audio id="loseSound"><source src="/ddz/static/music/lose.mp3" type="audio/mpeg"></audio>
 
     <div class="toast-container"><div class="toast" id="toast"></div></div>
 
     <!-- 顶部栏 -->
     <div class="top-bar">
         <div class="top-bar-left">
-            <a href="/nav" class="back-link">←</a>
+            <a href="/ddz/nav" class="back-link">←</a>
             <span class="title">🃏 斗地主</span>
         </div>
         <div class="top-bar-right">
@@ -144,12 +144,12 @@
     });
 
     function loadUser(){
-        fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+        fetch('/ddz/api/get_user_data').then(r=>r.json()).then(d=>{
             if(d.success){
                 document.getElementById('usernameDisplay').textContent=d.data.username;
                 document.getElementById('coinsDisplay').textContent=d.data.coins;
                 document.getElementById('myName').textContent=d.data.username;
-            }else location.href='/';
+            }else location.href='/ddz/';
         });
     }
 
@@ -703,7 +703,7 @@
         if(win&&G.firstPlay){G.mult*=2;G.spring=true;}
 
         const coin=win?100*G.mult:-50*G.mult;
-        fetch('/api/update_result',{method:'POST',headers:{'Content-Type':'application/json'},
+        fetch('/ddz/api/update_result',{method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({result:win?'win':'loss'})})
         .then(r=>r.json()).then(d=>{
             if(d.success){

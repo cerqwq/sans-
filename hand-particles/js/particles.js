@@ -1,5 +1,6 @@
 const PARTICLE_COUNT = 1200;
 const MIN_PARTICLES = 400;
+const MAX_PARTICLES = 2000;
 const SPHERE_RADIUS = 130;
 const RING_INNER = 80;
 const RING_OUTER = 280;
@@ -18,19 +19,82 @@ const SCATTER_DECAY_RATE = 2.5;
 const SCATTER_FORM_DELAY = 0.3;
 const SCATTER_FORM_DURATION = 1.2;
 
-// 手势检测参数
-const HAND_SMOOTHING = 0.35;
-const OPENNESS_SMOOTHING = 0.25;
-const GESTURE_STABLE_THRESHOLD = 3;
-const SWORD_FINGER_THRESHOLD = 0.4;
-const OPEN_THRESHOLD = 0.55;
-const FIST_THRESHOLD = 0.4;
+// Stream gesture physics
+const STREAM_SPEED = 400;
+const DUAL_STREAM_SPREAD = 0.4; // radians between two peace streams
 
-// 视觉效果参数
-const STAR_DRIFT_SPEED = 0.1;
-const HUE_ROTATION_SPEED = 10;
-const TRAIL_FADE_ALPHA = 0.18;
+// Object pool limits
+const POOL_MAX = 2500;
 
+// ── Pre-computed shape paths ────────────────────────────────────────────────
+function _starPath(spikes, outerR, innerR) {
+  const p = new Path2D();
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const a = (i / (spikes * 2)) * PI2 - Math.PI / 2;
+    if (i === 0) p.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else p.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  p.closePath();
+  return p;
+}
+
+function _heartPath() {
+  const p = new Path2D();
+  p.moveTo(0, -0.35);
+  p.bezierCurveTo(-0.55, -1.05, -1.1, -0.35, -0.55, 0.2);
+  p.lineTo(0, 0.95);
+  p.lineTo(0.55, 0.2);
+  p.bezierCurveTo(1.1, -0.35, 0.55, -1.05, 0, -0.35);
+  p.closePath();
+  return p;
+}
+
+function _diamondPath() {
+  const p = new Path2D();
+  p.moveTo(0, -1);
+  p.lineTo(0.6, 0);
+  p.lineTo(0, 1);
+  p.lineTo(-0.6, 0);
+  p.closePath();
+  return p;
+}
+
+function _customPath() {
+  // 8-point star with alternating spike lengths for a cosmic shape
+  const p = new Path2D();
+  const pts = 8;
+  const lens = [1, 0.35, 0.85, 0.35, 1, 0.35, 0.85, 0.35];
+  for (let i = 0; i < pts; i++) {
+    const a = (i / pts) * PI2 - Math.PI / 2;
+    const r = lens[i];
+    if (i === 0) p.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else p.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  p.closePath();
+  return p;
+}
+
+const SHAPE_PATHS = {
+  line: null,
+  star: _starPath(5, 1, 0.4),
+  heart: _heartPath(),
+  diamond: _diamondPath(),
+  custom: _customPath(),
+};
+
+// ── Object Pool ─────────────────────────────────────────────────────────────
+const _pool = [];
+
+function _poolGet() {
+  return _pool.length > 0 ? _pool.pop() : null;
+}
+
+function _poolReturn(obj) {
+  if (_pool.length < POOL_MAX) _pool.push(obj);
+}
+
+// ── ParticleSystem ──────────────────────────────────────────────────────────
 export class ParticleSystem {
   constructor(canvas) {
     this.canvas = canvas;
@@ -40,6 +104,10 @@ export class ParticleSystem {
     this.time = 0;
     this.targetX = 0;
     this.targetY = 0;
+    this._prevTargetX = 0;
+    this._prevTargetY = 0;
+    this._handVx = 0;
+    this._handVy = 0;
     this.openness = 0;
     this._targetOpenness = 0.5;
     this._hueOffset = 0;
@@ -51,15 +119,39 @@ export class ParticleSystem {
     this._lastFPSSample = performance.now();
     this._currentFPS = 60;
     this._targetCount = PARTICLE_COUNT;
+    this._shapeType = 'line';
+    this._qualityScale = 1;        // 0.5..1 adaptive quality
+    this._renderPasses = 6;         // number of glow passes (adaptive)
+    this._pointAngle = -Math.PI / 2; // direction of pointing gesture
     this._setupDPI();
     this._initStars();
     this._initParticles();
     this._vignette = null;
+
+    // Effect toggles
+    this.effects = {
+      trails: true,
+      glow: true,
+      scatterFlash: true,
+    };
   }
 
+  // ── public API ──────────────────────────────────────────────────────────
   setTargetOpenness(val) { this._targetOpenness = val; }
   getTargetOpenness() { return this._targetOpenness; }
+  setShape(type) { if (SHAPE_PATHS.hasOwnProperty(type)) this._shapeType = type; }
+  getShape() { return this._shapeType; }
 
+  setParticleCount(count) {
+    this._targetCount = Math.max(MIN_PARTICLES, Math.min(MAX_PARTICLES, Math.round(count)));
+    if (this._targetCount > this.particles.length) this._addParticles();
+    else if (this._targetCount < this.particles.length) this._trimParticles();
+  }
+
+  getParticleCount() { return this._targetCount; }
+  getFPS() { return Math.round(this._currentFPS); }
+
+  // ── internal setup ──────────────────────────────────────────────────────
   _setupDPI() {
     const dpr = window.devicePixelRatio || 1;
     const w = window.innerWidth;
@@ -68,7 +160,7 @@ export class ParticleSystem {
     this.canvas.height = h * dpr;
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
-    this.ctx.scale(dpr, dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w;
     this.h = h;
     this.targetX = w / 2;
@@ -109,6 +201,8 @@ export class ParticleSystem {
   _initParticles() {
     const cx = this.w / 2;
     const cy = this.h / 2;
+    // Return existing particles to pool
+    for (const p of this.particles) _poolReturn(p);
     this.particles = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const goldenAngle = i * 2.399963;
@@ -118,31 +212,39 @@ export class ParticleSystem {
   }
 
   _createParticle(i, x, y, angle) {
-    return {
-      x, y, vx: 0, vy: 0, angle,
-      baseHue: (i / PARTICLE_COUNT) * 360,
-      size: 1.4 + Math.random() * 1.6,
-      baseAlpha: 0.8 + Math.random() * 0.2,
-      ringAngle: Math.random() * PI2,
-      ringRadius: RING_INNER + Math.random() * (RING_OUTER - RING_INNER),
-      ringSpeed: (0.4 + Math.random() * 0.6) * (Math.random() > 0.5 ? 1 : -1),
-      ringPhase: Math.random() * PI2,
-      spherePhase: Math.random() * PI2,
-      sphereTheta: Math.acos(2 * Math.random() - 1),
-      sphereSpeed: 0.3 + Math.random() * 0.6,
-      sphereRadius: 20 + Math.random() * (SPHERE_RADIUS - 20),
-      scatterAngle: 0, scatterSpeed: 0,
-      _cos: 0, _sin: 0, _speed: 0, _depthScale: 1,
-    };
+    // Try to reuse from pool
+    const p = _poolGet() || {};
+    p.x = x; p.y = y; p.vx = 0; p.vy = 0; p.angle = angle;
+    p.baseHue = (i / PARTICLE_COUNT) * 360;
+    p.size = 1.4 + Math.random() * 1.6;
+    p.baseAlpha = 0.8 + Math.random() * 0.2;
+    p.ringAngle = Math.random() * PI2;
+    p.ringRadius = RING_INNER + Math.random() * (RING_OUTER - RING_INNER);
+    p.ringSpeed = (0.4 + Math.random() * 0.6) * (Math.random() > 0.5 ? 1 : -1);
+    p.ringPhase = Math.random() * PI2;
+    p.spherePhase = Math.random() * PI2;
+    p.sphereTheta = Math.acos(2 * Math.random() - 1);
+    p.sphereSpeed = 0.3 + Math.random() * 0.6;
+    p.sphereRadius = 20 + Math.random() * (SPHERE_RADIUS - 20);
+    p.scatterAngle = 0; p.scatterSpeed = 0;
+    p._cos = 0; p._sin = 0; p._speed = 0; p._depthScale = 1; p._renderIdx = 0;
+    return p;
   }
 
-  setTarget(x, y) { this.targetX = x; this.targetY = y; }
+  setTarget(x, y) {
+    this._prevTargetX = this.targetX;
+    this._prevTargetY = this.targetY;
+    this.targetX = x;
+    this.targetY = y;
+  }
   setOpenness(val) { this.openness = val; }
 
   setGesture(g) {
     if (g === 'sword' && this.gesture !== 'sword') this._triggerScatter();
     this.gesture = g;
   }
+
+  setPointAngle(a) { this._pointAngle = a; }
 
   _triggerScatter() {
     this._scatterActive = true;
@@ -153,17 +255,23 @@ export class ParticleSystem {
     }
   }
 
+  // ── update loop ─────────────────────────────────────────────────────────
   update(dt) {
     this.time += dt;
     this._hueOffset = (this._hueOffset + dt * 10) % 360;
     const cx = this.targetX;
     const cy = this.targetY;
 
+    // Hand velocity for stream direction
+    this._handVx = (this.targetX - this._prevTargetX) / Math.max(dt, 0.001);
+    this._handVy = (this.targetY - this._prevTargetY) / Math.max(dt, 0.001);
+
     if (this._scatterActive) {
       this._scatterTime += dt;
       if (this._scatterTime > SCATTER_DURATION) this._scatterActive = false;
     }
 
+    // Drift background stars
     for (const s of this.stars) {
       s.x += s.driftX;
       s.y += s.driftY;
@@ -178,11 +286,20 @@ export class ParticleSystem {
     const scatterTime = this._scatterTime;
     const openness = this.openness;
     const time = this.time;
+    const gesture = this.gesture;
+
+    // Compute stream direction from hand velocity or default
+    const handSpeed = Math.hypot(this._handVx, this._handVy);
+    let streamDir = this._pointAngle;
+    if (handSpeed > 50) {
+      streamDir = Math.atan2(this._handVy, this._handVx);
+    }
 
     for (const p of this.particles) {
       let tx, ty;
 
       if (scatterSword) {
+        // Sword scatter effect (existing)
         const decay = Math.exp(-scatterTime * SCATTER_DECAY_RATE);
         const outward = p.scatterSpeed * decay;
         tx = p.x + Math.cos(p.scatterAngle) * outward * dt;
@@ -201,7 +318,40 @@ export class ParticleSystem {
         }
         p.vx += (tx - p.x) * 0.1;
         p.vy += (ty - p.y) * 0.1;
+
+      } else if (gesture === 'point') {
+        // Pointing: direct particle stream in pointing direction
+        const idx = p._renderIdx || 0;
+        const offset = ((idx % 30) - 15) * 3; // spread perpendicular to stream
+        const perpAngle = streamDir + Math.PI / 2;
+        const baseX = cx + Math.cos(perpAngle) * offset;
+        const baseY = cy + Math.sin(perpAngle) * offset;
+        // Particles flow along stream direction
+        const flowPhase = (time * STREAM_SPEED + p.ringPhase * 50) % 400;
+        tx = baseX + Math.cos(streamDir) * (flowPhase - 200);
+        ty = baseY + Math.sin(streamDir) * (flowPhase - 200);
+        p.vx += (tx - p.x) * 0.06;
+        p.vy += (ty - p.y) * 0.06;
+
+      } else if (gesture === 'peace') {
+        // Peace sign: dual particle streams (V-shape)
+        const idx = p._renderIdx || 0;
+        const streamId = idx % 2; // 0 or 1
+        const angle1 = streamDir - DUAL_STREAM_SPREAD;
+        const angle2 = streamDir + DUAL_STREAM_SPREAD;
+        const sAngle = streamId === 0 ? angle1 : angle2;
+        const offset = ((idx % 20) - 10) * 3;
+        const perpAngle = sAngle + Math.PI / 2;
+        const baseX = cx + Math.cos(perpAngle) * offset;
+        const baseY = cy + Math.sin(perpAngle) * offset;
+        const flowPhase = (time * STREAM_SPEED + p.ringPhase * 50) % 400;
+        tx = baseX + Math.cos(sAngle) * (flowPhase - 200);
+        ty = baseY + Math.sin(sAngle) * (flowPhase - 200);
+        p.vx += (tx - p.x) * 0.06;
+        p.vy += (ty - p.y) * 0.06;
+
       } else if (openness > 0.5) {
+        // Ring / open palm attraction
         const strength = (openness - 0.5) * 2;
         p.ringAngle += p.ringSpeed * dt * 1.5;
         const wobble = Math.sin(time * 0.8 + p.ringPhase) * 20 * strength;
@@ -209,7 +359,9 @@ export class ParticleSystem {
         ty = cy + Math.sin(p.ringAngle) * p.ringRadius * 0.4 + wobble;
         p.vx += (tx - p.x) * 0.025 * strength;
         p.vy += (ty - p.y) * 0.025 * strength;
+
       } else {
+        // Sphere / fist compact
         const strength = (0.5 - openness) * 2;
         p.spherePhase += p.sphereSpeed * dt;
         const r = p.sphereRadius * (1 - strength * 0.6);
@@ -243,12 +395,15 @@ export class ParticleSystem {
       p._sin = Math.sin(p.angle);
     }
 
+    // ── Adaptive quality (FPS) ──────────────────────────────────────────
     this._frameCount++;
     const now = performance.now();
     if (now - this._lastFPSSample > FPS_SAMPLE_INTERVAL) {
       this._currentFPS = this._frameCount / ((now - this._lastFPSSample) / 1000);
       this._frameCount = 0;
       this._lastFPSSample = now;
+
+      // Adjust particle count
       if (this._currentFPS < FPS_LOW_THRESHOLD && this._targetCount > MIN_PARTICLES) {
         this._targetCount = Math.max(MIN_PARTICLES, this._targetCount - 200);
         this._trimParticles();
@@ -256,10 +411,26 @@ export class ParticleSystem {
         this._targetCount = Math.min(PARTICLE_COUNT, this._targetCount + 100);
         this._addParticles();
       }
+
+      // Adjust render quality
+      if (this._currentFPS < 25) {
+        this._qualityScale = 0.5;
+        this._renderPasses = 3;
+      } else if (this._currentFPS < 40) {
+        this._qualityScale = 0.75;
+        this._renderPasses = 4;
+      } else {
+        this._qualityScale = 1;
+        this._renderPasses = 6;
+      }
     }
   }
 
-  _trimParticles() { if (this.particles.length > this._targetCount) this.particles.length = this._targetCount; }
+  _trimParticles() {
+    while (this.particles.length > this._targetCount) {
+      _poolReturn(this.particles.pop());
+    }
+  }
 
   _addParticles() {
     const cx = this.w / 2, cy = this.h / 2;
@@ -271,15 +442,18 @@ export class ParticleSystem {
     }
   }
 
+  // ── draw ────────────────────────────────────────────────────────────────
   draw() {
     const ctx = this.ctx;
     const w = this.w;
     const h = this.h;
+    const shape = this._shapeType;
+    const isLineShape = shape === 'line';
 
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, w, h);
 
-    // Stars
+    // Background stars
     for (const s of this.stars) {
       const twinkle = 0.5 + 0.5 * Math.sin(this.time * s.twinkleSpeed + s.twinklePhase);
       ctx.beginPath();
@@ -288,141 +462,59 @@ export class ParticleSystem {
       ctx.fill();
     }
 
-    // Fade trail
-    ctx.fillStyle = 'rgba(5,5,8,0.18)';
-    ctx.fillRect(0, 0, w, h);
+    // Fade trail (skip if trails disabled)
+    if (this.effects.trails) {
+      ctx.fillStyle = 'rgba(5,5,8,0.18)';
+      ctx.fillRect(0, 0, w, h);
+    }
 
-    // Batch draw particles - group by approximate hue for fewer state changes
+    // Batch draw particles — group by hue bucket
     const particles = this.particles;
     const hueOffset = this._hueOffset;
     const colorMode = this.colorMode;
     const time = this.time;
+    const qualityScale = this._qualityScale;
+    const renderPasses = this._renderPasses;
 
-    // Sort by hue bucket (10-degree buckets) for batching
-    const buckets = this._hueBuckets || (this._hueBuckets = new Array(36).fill(null).map(() => []));
+    const buckets = this._hueBuckets || (this._hueBuckets = Array.from({ length: 36 }, () => []));
     for (let i = 0; i < 36; i++) buckets[i].length = 0;
 
     for (const p of particles) {
       const hue = this._computeHue(p, colorMode, hueOffset, time);
-      const bucket = Math.floor(Math.floor(((hue % 360) + 360) % 360) / 10);
+      const bucket = Math.floor(((hue % 360 + 360) % 360) / 10);
       if (bucket >= 0 && bucket < 36) buckets[bucket].push(p);
     }
 
     ctx.lineCap = 'round';
 
-    // Draw each bucket with shared stroke style
-    for (let b = 0; b < 36; b++) {
-      const bucket = buckets[b];
-      if (!bucket.length) continue;
+    // Pre-compute per-particle render data
+    const renderData = this._renderData || (this._renderData = new Array(MAX_PARTICLES));
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p._renderIdx = i;
+      const depth = p._depthScale;
+      const speedFactor = Math.min(p._speed * 0.25, 1);
+      const alpha = p.baseAlpha * depth * (0.4 + speedFactor * 0.6);
+      const sz = p.size * depth;
+      const bladeLen = (5 + speedFactor * 16) * qualityScale;
+      const cos = p._cos;
+      const sin = p._sin;
+      renderData[i] = {
+        x1: p.x - cos * bladeLen * 0.4,
+        y1: p.y - sin * bladeLen * 0.4,
+        x2: p.x + cos * bladeLen,
+        y2: p.y + sin * bladeLen,
+        mx: p.x + cos * bladeLen * 0.2,
+        my: p.y + sin * bladeLen * 0.2,
+        alpha, sz,
+      };
+    }
 
-      const hue = b * 10 + 5; // bucket center hue
-
-      // Pre-compute shared color strings for this hue bucket
-      const outerGlow = `hsla(${hue},70%,40%,`;
-      const midGlow = `hsla(${hue},85%,55%,`;
-      const innerBright = `hsla(${hue},90%,75%,`;
-      const whiteHot = `hsla(${hue},100%,92%,`;
-      const tipFlare = `hsla(${hue},100%,96%,`;
-      const baseGlow = `hsla(${hue},80%,60%,`;
-
-      // Batch 1: outer glow (all particles in bucket)
-      for (const p of bucket) {
-        const depth = p._depthScale;
-        const speedFactor = Math.min(p._speed * 0.25, 1);
-        const alpha = p.baseAlpha * depth * (0.4 + speedFactor * 0.6);
-        const sz = p.size * depth;
-        const bladeLen = 5 + speedFactor * 16;
-        const cos = p._cos;
-        const sin = p._sin;
-        const x1 = p.x - cos * bladeLen * 0.4;
-        const y1 = p.y - sin * bladeLen * 0.4;
-        const x2 = p.x + cos * bladeLen;
-
-        ctx.beginPath();
-        ctx.strokeStyle = outerGlow + (alpha * 0.12).toFixed(3) + ')';
-        ctx.lineWidth = sz * 5;
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, p.y + sin * bladeLen);
-        ctx.stroke();
-      }
-
-      // Batch 2: mid glow
-      for (const p of bucket) {
-        const depth = p._depthScale;
-        const speedFactor = Math.min(p._speed * 0.25, 1);
-        const alpha = p.baseAlpha * depth * (0.4 + speedFactor * 0.6);
-        const sz = p.size * depth;
-        const bladeLen = 5 + speedFactor * 16;
-        const cos = p._cos;
-        const sin = p._sin;
-        const x1 = p.x - cos * bladeLen * 0.4;
-        const y1 = p.y - sin * bladeLen * 0.4;
-        const x2 = p.x + cos * bladeLen;
-
-        ctx.beginPath();
-        ctx.strokeStyle = midGlow + (alpha * 0.3).toFixed(3) + ')';
-        ctx.lineWidth = sz * 2.2;
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, p.y + sin * bladeLen);
-        ctx.stroke();
-      }
-
-      // Batch 3: inner bright + white core + tip
-      ctx.globalCompositeOperation = 'lighter';
-      for (const p of bucket) {
-        const depth = p._depthScale;
-        const speedFactor = Math.min(p._speed * 0.25, 1);
-        const alpha = p.baseAlpha * depth * (0.4 + speedFactor * 0.6);
-        const sz = p.size * depth;
-        const bladeLen = 5 + speedFactor * 16;
-        const cos = p._cos;
-        const sin = p._sin;
-        const mx = p.x + cos * bladeLen * 0.2;
-        const my = p.y + sin * bladeLen * 0.2;
-        const x2 = p.x + cos * bladeLen;
-        const y2 = p.y + sin * bladeLen;
-
-        // Inner bright
-        ctx.beginPath();
-        ctx.strokeStyle = innerBright + (alpha * 0.7).toFixed(3) + ')';
-        ctx.lineWidth = sz;
-        ctx.moveTo(mx, my);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-
-        // White-hot core
-        ctx.beginPath();
-        ctx.strokeStyle = whiteHot + (alpha * 0.5).toFixed(3) + ')';
-        ctx.lineWidth = sz * 0.4;
-        ctx.moveTo(mx, my);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-
-        // Tip flare
-        ctx.beginPath();
-        ctx.fillStyle = tipFlare + (alpha * 0.8).toFixed(3) + ')';
-        ctx.arc(x2, y2, sz * 0.6, 0, PI2);
-        ctx.fill();
-      }
-
-      // Batch 4: base glow (back to source-over for dark outlines)
-      ctx.globalCompositeOperation = 'source-over';
-      for (const p of bucket) {
-        const depth = p._depthScale;
-        const speedFactor = Math.min(p._speed * 0.25, 1);
-        const alpha = p.baseAlpha * depth * (0.4 + speedFactor * 0.6);
-        const sz = p.size * depth;
-        const bladeLen = 5 + speedFactor * 16;
-        const cos = p._cos;
-        const sin = p._sin;
-        const x1 = p.x - cos * bladeLen * 0.4;
-        const y1 = p.y - sin * bladeLen * 0.4;
-
-        ctx.beginPath();
-        ctx.fillStyle = baseGlow + (alpha * 0.15).toFixed(3) + ')';
-        ctx.arc(x1, y1, sz * 1.5, 0, PI2);
-        ctx.fill();
-      }
+    // ── Draw each hue bucket ─────────────────────────────────────────────
+    if (isLineShape) {
+      this._drawLineParticles(ctx, buckets, renderData, renderPasses, hueOffset, time, qualityScale);
+    } else {
+      this._drawShapeParticles(ctx, buckets, renderData, shape, hueOffset, time, qualityScale);
     }
 
     // Vignette
@@ -430,7 +522,7 @@ export class ParticleSystem {
     ctx.fillRect(0, 0, w, h);
 
     // Dark void center for black hole
-    if (this.openness > 0.3 && this.gesture !== 'sword') {
+    if (this.openness > 0.3 && this.gesture !== 'sword' && this.gesture !== 'point' && this.gesture !== 'peace') {
       const vs = (this.openness - 0.3) / 0.7;
       const vr = 60 * vs;
       const grad = ctx.createRadialGradient(this.targetX, this.targetY, vr * 0.3, this.targetX, this.targetY, vr);
@@ -444,7 +536,7 @@ export class ParticleSystem {
     }
 
     // Scatter flash
-    if (this._scatterActive && this._scatterTime < 0.15) {
+    if (this.effects.scatterFlash && this._scatterActive && this._scatterTime < 0.15) {
       const flash = 1 - this._scatterTime / 0.15;
       const grad = ctx.createRadialGradient(this.targetX, this.targetY, 0, this.targetX, this.targetY, 300);
       grad.addColorStop(0, `rgba(255,255,255,${(0.2 * flash).toFixed(3)})`);
@@ -452,8 +544,185 @@ export class ParticleSystem {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
     }
+
+    // Point indicator (small directional arrow)
+    if (this.gesture === 'point') {
+      this._drawStreamIndicator(ctx, this.targetX, this.targetY, this._pointAngle, '#ffffff');
+    }
+    // Peace indicator (two directional arrows)
+    if (this.gesture === 'peace') {
+      this._drawStreamIndicator(ctx, this.targetX, this.targetY, this._pointAngle - DUAL_STREAM_SPREAD, '#ffffff');
+      this._drawStreamIndicator(ctx, this.targetX, this.targetY, this._pointAngle + DUAL_STREAM_SPREAD, '#ffffff');
+    }
   }
 
+  // ── line rendering (original style) ───────────────────────────────────────
+  _drawLineParticles(ctx, buckets, renderData, renderPasses, hueOffset, time, qualityScale) {
+    for (let b = 0; b < 36; b++) {
+      const bucket = buckets[b];
+      if (!bucket.length) continue;
+      const hue = b * 10 + 5;
+
+      const outerGlow = `hsla(${hue},70%,40%,`;
+      const midGlow = `hsla(${hue},85%,55%,`;
+      const innerBright = `hsla(${hue},90%,75%,`;
+      const whiteHot = `hsla(${hue},100%,92%,`;
+      const tipFlare = `hsla(${hue},100%,96%,`;
+      const baseGlow = `hsla(${hue},80%,60%,`;
+
+      // Outer glow
+      if (renderPasses >= 4 && this.effects.glow) {
+        for (const p of bucket) {
+          const rd = renderData[p._renderIdx];
+          ctx.beginPath();
+          ctx.strokeStyle = outerGlow + (rd.alpha * 0.12).toFixed(3) + ')';
+          ctx.lineWidth = rd.sz * 5;
+          ctx.moveTo(rd.x1, rd.y1);
+          ctx.lineTo(rd.x2, rd.y2);
+          ctx.stroke();
+        }
+      }
+
+      // Mid glow
+      if (renderPasses >= 3 && this.effects.glow) {
+        for (const p of bucket) {
+          const rd = renderData[p._renderIdx];
+          ctx.beginPath();
+          ctx.strokeStyle = midGlow + (rd.alpha * 0.3).toFixed(3) + ')';
+          ctx.lineWidth = rd.sz * 2.2;
+          ctx.moveTo(rd.x1, rd.y1);
+          ctx.lineTo(rd.x2, rd.y2);
+          ctx.stroke();
+        }
+      }
+
+      // Inner bright + white core + tip
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of bucket) {
+        const rd = renderData[p._renderIdx];
+        ctx.beginPath();
+        ctx.strokeStyle = innerBright + (rd.alpha * 0.7).toFixed(3) + ')';
+        ctx.lineWidth = rd.sz;
+        ctx.moveTo(rd.mx, rd.my);
+        ctx.lineTo(rd.x2, rd.y2);
+        ctx.stroke();
+
+        if (renderPasses >= 5) {
+          ctx.beginPath();
+          ctx.strokeStyle = whiteHot + (rd.alpha * 0.5).toFixed(3) + ')';
+          ctx.lineWidth = rd.sz * 0.4;
+          ctx.moveTo(rd.mx, rd.my);
+          ctx.lineTo(rd.x2, rd.y2);
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.fillStyle = tipFlare + (rd.alpha * 0.8).toFixed(3) + ')';
+        ctx.arc(rd.x2, rd.y2, rd.sz * 0.6, 0, PI2);
+        ctx.fill();
+      }
+
+      // Base glow
+      ctx.globalCompositeOperation = 'source-over';
+      if (renderPasses >= 6) {
+        for (const p of bucket) {
+          const rd = renderData[p._renderIdx];
+          ctx.beginPath();
+          ctx.fillStyle = baseGlow + (rd.alpha * 0.15).toFixed(3) + ')';
+          ctx.arc(rd.x1, rd.y1, rd.sz * 1.5, 0, PI2);
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  // ── shape rendering (star, heart, diamond, custom) ────────────────────────
+  _drawShapeParticles(ctx, buckets, renderData, shape, hueOffset, time, qualityScale) {
+    const path = SHAPE_PATHS[shape];
+
+    for (let b = 0; b < 36; b++) {
+      const bucket = buckets[b];
+      if (!bucket.length) continue;
+      const hue = b * 10 + 5;
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Outer glow pass
+      if (this.effects.glow) {
+        ctx.shadowColor = `hsla(${hue},70%,50%,0.4)`;
+        ctx.shadowBlur = 12 * qualityScale;
+        for (const p of bucket) {
+          const rd = renderData[p._renderIdx];
+          const sz = rd.sz * 2.5;
+          ctx.save();
+          ctx.translate(rd.x2, rd.y2);
+          ctx.rotate(p.angle + time * 0.3);
+          ctx.scale(sz, sz);
+          ctx.fillStyle = `hsla(${hue},80%,60%,${(rd.alpha * 0.2).toFixed(3)})`;
+          ctx.fill(path);
+          ctx.restore();
+        }
+      }
+
+      // Main shape fill
+      ctx.shadowBlur = 4 * qualityScale;
+      for (const p of bucket) {
+        const rd = renderData[p._renderIdx];
+        const sz = rd.sz * 2;
+        ctx.save();
+        ctx.translate(rd.x2, rd.y2);
+        ctx.rotate(p.angle + time * 0.3);
+        ctx.scale(sz, sz);
+        ctx.fillStyle = `hsla(${hue},85%,55%,${(rd.alpha * 0.6).toFixed(3)})`;
+        ctx.fill(path);
+        ctx.restore();
+      }
+
+      // Bright center (smaller)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowBlur = 0;
+      for (const p of bucket) {
+        const rd = renderData[p._renderIdx];
+        const sz = rd.sz;
+        ctx.save();
+        ctx.translate(rd.x2, rd.y2);
+        ctx.rotate(p.angle + time * 0.3);
+        ctx.scale(sz, sz);
+        ctx.fillStyle = `hsla(${hue},100%,85%,${(rd.alpha * 0.5).toFixed(3)})`;
+        ctx.fill(path);
+        ctx.restore();
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  // ── stream direction indicator ────────────────────────────────────────────
+  _drawStreamIndicator(ctx, x, y, angle, color) {
+    const len = 60;
+    const tipX = x + Math.cos(angle) * len;
+    const tipY = y + Math.sin(angle) * len;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.15;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+    // Arrow head
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - Math.cos(angle - 0.4) * 12, tipY - Math.sin(angle - 0.4) * 12);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - Math.cos(angle + 0.4) * 12, tipY - Math.sin(angle + 0.4) * 12);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── color ────────────────────────────────────────────────────────────────
   _computeHue(p, colorMode, hueOffset, time) {
     const t = Math.sin(time * 0.5 + p.baseHue * 0.01);
     switch (colorMode) {
@@ -469,6 +738,17 @@ export class ParticleSystem {
   resize() {
     this._setupDPI();
     this._initStars();
+    this._initParticles();
+    this._vignette = null;
+    this._targetCount = PARTICLE_COUNT;
+  }
+
+  destroy() {
+    for (const p of this.particles) _poolReturn(p);
+    this.particles = [];
+    this.stars = [];
+    this._hueBuckets = null;
+    this._renderData = null;
     this._vignette = null;
   }
 }

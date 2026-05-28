@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人中心</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body class="lobby-bg">
@@ -56,15 +56,15 @@
         <div class="info-section">
             <div class="info-section-title">🚀 快速跳转</div>
             <div class="profile-nav-grid">
-                <a href="/nav" class="btn btn-ghost">🏠 导航中心</a>
-                <a href="/doudizhu" class="btn btn-blue">🃏 单机斗地主</a>
-                <a href="/lobby" class="btn btn-green">🌐 联机大厅</a>
+                <a href="/ddz/nav" class="btn btn-ghost">🏠 导航中心</a>
+                <a href="/ddz/doudizhu" class="btn btn-blue">🃏 单机斗地主</a>
+                <a href="/ddz/lobby" class="btn btn-green">🌐 联机大厅</a>
             </div>
         </div>
     </div>
 
     <script>
-        fetch('/api/get_user_data')
+        fetch('/ddz/api/get_user_data')
             .then(r => r.json())
             .then(d => {
                 if (d.success) {

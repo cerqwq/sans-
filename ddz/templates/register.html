@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>斗地主 - 注册</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body class="auth-page">
@@ -59,7 +59,7 @@
 
             <div class="auth-footer">
                 <span>已有账号？</span>
-                <a href="/" class="auth-link">立即登录</a>
+                <a href="/ddz/" class="auth-link">立即登录</a>
             </div>
 
             <div id="msg" class="auth-msg"></div>
@@ -88,7 +88,7 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-loading">注册中...</span>';
 
-            fetch('/register', {
+            fetch('/ddz/register', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: u, password: p})
@@ -96,7 +96,7 @@
             .then(r => r.json())
             .then(d => {
                 showMsg(d.message, d.success);
-                if (d.success) setTimeout(() => window.location.href = '/', 1500);
+                if (d.success) setTimeout(() => window.location.href = '/ddz/', 1500);
                 else { btn.disabled = false; btn.innerHTML = '<span>注 册</span>'; }
             })
             .catch(() => {

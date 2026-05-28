@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>联机斗地主</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ddz/static/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 </head>
 <body>
@@ -12,7 +12,7 @@
 
     <div class="top-bar">
         <div class="top-bar-left">
-            <a href="/lobby" class="back-link">←</a>
+            <a href="/ddz/lobby" class="back-link">←</a>
             <span class="title">🃏 联机斗地主</span>
         </div>
         <div class="top-bar-right">
@@ -27,11 +27,13 @@
             <div class="p-avatar ai" id="p1Avatar">👤</div>
             <div class="player-info">
                 <div class="player-name" id="p1Name">等待中...</div>
+                <div class="player-role" id="p1Role"></div>
                 <div class="card-back-row">
                     <div class="card-back">🃏</div>
                     <span class="card-count" id="p1Count">0</span>
                 </div>
             </div>
+            <div class="player-last-play" id="p1LastPlay"></div>
         </div>
 
         <!-- 右侧玩家 -->
@@ -39,11 +41,26 @@
             <div class="p-avatar ai" id="p2Avatar">👤</div>
             <div class="player-info">
                 <div class="player-name" id="p2Name">等待中...</div>
+                <div class="player-role" id="p2Role"></div>
                 <div class="card-back-row" style="justify-content:flex-end;">
                     <span class="card-count" id="p2Count">0</span>
                     <div class="card-back">🃏</div>
                 </div>
             </div>
+            <div class="player-last-play" id="p2LastPlay"></div>
+        </div>
+
+        <!-- 上次出牌展示区 -->
+        <div class="last-play-area" id="lastPlayArea">
+            <div class="last-play-label">上次出牌</div>
+            <div class="last-play-cards" id="lastPlayCards"></div>
+            <div class="last-play-user" id="lastPlayUser"></div>
+        </div>
+
+        <!-- 已出牌计数器 -->
+        <div class="card-counter" id="cardCounter" style="display:none;">
+            <div class="counter-title">已出牌</div>
+            <div class="counter-grid" id="counterGrid"></div>
         </div>
 
         <div class="play-zone" id="playZone"></div>
@@ -76,7 +93,7 @@
         <div class="modal-content">
             <div class="modal-title" id="modalTitle">🎉 游戏结束</div>
             <div class="modal-subtitle" id="modalSub"></div>
-            <button class="btn btn-gold" onclick="location.href='/lobby'">返回大厅</button>
+            <button class="btn btn-gold" onclick="location.href='/ddz/lobby'">返回大厅</button>
         </div>
     </div>
 
@@ -86,6 +103,11 @@
     const params = new URLSearchParams(window.location.search);
     const roomCode = params.get('room');
     let myCards=[], myPos=-1, players=[], selected=[], myTurn=false, isReady=false;
+    let pendingCards=null; // 用于出牌失败时恢复手牌
+    let playedCardTracker = {}; // 跟踪已出的牌 { rank: count }
+    let lastPlayInfo = null; // { cards, username, position }
+    const RANKS_ORDER = ['3','4','5','6','7','8','9','10','J','Q','K','A','2','小王','大王'];
+    const RANK_VALUES = {'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14,'2':15,'小王':16,'大王':17};
 
     document.getElementById('roomInfo').textContent = `房间: ${roomCode||'未知'}`;
 
@@ -95,7 +117,7 @@
         document.getElementById('connStatus').style.color = 'var(--green)';
         // 重连时重新加入房间
         if(roomCode){
-            fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+            fetch('/ddz/api/get_user_data').then(r=>r.json()).then(d=>{
                 if(d.success) socket.emit('join_game',{room_code:roomCode,username:d.data.username});
             });
         }
@@ -104,42 +126,53 @@
     socket.on('disconnect', () => {
         document.getElementById('connStatus').textContent = '○ 断开';
         document.getElementById('connStatus').style.color = 'var(--red)';
-        showToast('⚠️ 连接断开，正在重连...','warning');
+        showToast('连接断开，正在重连...','warning');
     });
 
     socket.on('reconnect', () => {
-        showToast('✅ 已重新连接','success');
+        showToast('已重新连接','success');
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-        fetch('/api/get_user_data').then(r=>r.json()).then(d=>{
+        fetch('/ddz/api/get_user_data').then(r=>r.json()).then(d=>{
             if(d.success){
                 document.getElementById('myName').textContent=d.data.username;
-                if(roomCode){socket.emit('join_game',{room_code:roomCode,username:d.data.username});showToast('🔄 加入游戏...','info');}
-                else showToast('❌ 房间号无效','error');
-            }else location.href='/';
+                if(roomCode){socket.emit('join_game',{room_code:roomCode,username:d.data.username});showToast('加入游戏...','info');}
+                else showToast('房间号无效','error');
+            }else location.href='/ddz/';
         });
     });
 
     socket.on('room_state', d => { updatePlayers(d.players); updateReadyBtn(d.players); });
-    socket.on('player_ready_update', d => { updatePlayers(d.players); updateReadyBtn(d.players); if(d.all_ready) showToast('🎮 所有玩家已准备！','success'); });
+    socket.on('player_ready_update', d => { updatePlayers(d.players); updateReadyBtn(d.players); if(d.all_ready) showToast('所有玩家已准备！','success'); });
 
     socket.on('game_started', d => {
         myCards=d.your_cards; myPos=d.your_position; players=d.players;
+        playedCardTracker = {}; // 重置计数器
+        lastPlayInfo = null;
         renderCards(); updatePlayers(d.players);
+        renderCardCounter();
         document.getElementById('readyBar').style.display='none';
         document.getElementById('callBar').style.display='none';
         document.getElementById('actionBar').style.display='none';
-        document.getElementById('playHint').textContent=`🃏 发牌完成，等待叫地主... 倍率 x${d.multiplier}`;
-        players.forEach(p=>{const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';document.getElementById(id).classList.remove('landlord-avatar');});
+        document.getElementById('lastPlayArea').style.display='none';
+        document.getElementById('cardCounter').style.display='block';
+        document.getElementById('playHint').textContent=`发牌完成，等待叫地主... 倍率 x${d.multiplier}`;
+        players.forEach(p=>{
+            const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';
+            document.getElementById(id).classList.remove('landlord-avatar');
+            document.getElementById(id).classList.remove('turn-active');
+        });
+        clearPlayerLastPlays();
     });
 
     socket.on('your_turn_to_call', d => {
         myTurn=true;
-        document.getElementById('playHint').textContent=`🎯 请叫地主 (倍率 x${d.multiplier})`;
+        setTurnIndicator(myPos);
+        document.getElementById('playHint').textContent=`请叫地主 (倍率 x${d.multiplier})`;
         document.getElementById('actionBar').style.display='none';
         document.getElementById('callBar').style.display='flex';
-        showToast('🎯 轮到你叫地主','info');
+        showToast('轮到你叫地主','info');
     });
 
     socket.on('call_result', d => showToast(`${d.username} ${d.action==='call'?'叫地主':'不叫'}！倍率 x${d.multiplier}`,'info'));
@@ -149,40 +182,94 @@
         document.getElementById('actionBar').style.display='flex';
         if(d.your_cards){myCards=d.your_cards;renderCards();}
         players=d.players; updatePlayers(d.players);
-        document.getElementById('playHint').textContent=`👑 地主: ${d.landlord_username} 倍率 x${d.multiplier}`;
-        players.forEach(p=>{const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';document.getElementById(id).classList.toggle('landlord-avatar',p.is_landlord);});
+        document.getElementById('playHint').textContent=`地主: ${d.landlord_username} 倍率 x${d.multiplier}`;
+        // 更新地主标记和角色标签
+        players.forEach(p=>{
+            const id=p.position===0?'p1Avatar':p.position===1?'p2Avatar':'myAvatar';
+            document.getElementById(id).classList.toggle('landlord-avatar',p.is_landlord);
+            updatePlayerRole(p);
+        });
+        setTurnIndicator(d.current_turn);
     });
 
-    socket.on('your_turn_to_play', () => { myTurn=true; enableBtns(true); document.getElementById('playHint').textContent='🎯 轮到你出牌'; showToast('🎯 轮到你出牌','info'); });
-    socket.on('all_no_call', () => showToast('🔄 所有人都没叫，重新发牌','warning'));
+    socket.on('your_turn_to_play', () => {
+        myTurn=true;
+        enableBtns(true);
+        setTurnIndicator(myPos);
+        document.getElementById('playHint').textContent='轮到你出牌';
+        showToast('轮到你出牌','info');
+    });
+
+    socket.on('all_no_call', () => {
+        playedCardTracker = {};
+        renderCardCounter();
+        showToast('所有人都没叫，重新发牌','warning');
+    });
 
     socket.on('cards_played', d => {
-        showPlayed(d.cards, d.username);
+        showPlayed(d.cards, d.username, d.play_type);
+        // 更新已出牌跟踪
+        trackPlayedCards(d.cards);
+        renderCardCounter();
+        // 更新上次出牌信息
+        lastPlayInfo = { cards: d.cards, username: d.username, position: d.position };
+        updateLastPlayArea();
+        // 确认出牌成功，清除待出牌记录
+        if(d.username===document.getElementById('myName').textContent){
+            pendingCards=null;
+        }
         players.forEach(p=>{if(p.username===d.username)p.card_count=d.card_count;});
         updatePlayers(players);
         myTurn=(d.next_turn===myPos); enableBtns(myTurn);
-        if(myTurn){document.getElementById('playHint').textContent='🎯 轮到你出牌';showToast('🎯 轮到你出牌','info');}
-        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`🤖 ${np?.username||'对方'} 思考中...`;}
+        setTurnIndicator(d.next_turn);
+        if(myTurn){document.getElementById('playHint').textContent='轮到你出牌';showToast('轮到你出牌','info');}
+        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`${np?.username||'对方'} 思考中...`;}
     });
 
     socket.on('turn_passed', d => {
-        showToast(`⏭️ ${d.username} 不出`,'info');
+        showToast(`${d.username} 不出`,'info');
+        // 更新玩家侧边显示"不出"
+        updatePlayerPass(d.username);
         myTurn=(d.next_turn===myPos); enableBtns(myTurn);
-        if(myTurn)document.getElementById('playHint').textContent='🎯 轮到你出牌';
-        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`🤖 ${np?.username||'对方'} 思考中...`;}
+        setTurnIndicator(d.next_turn);
+        if(myTurn)document.getElementById('playHint').textContent='轮到你出牌';
+        else{const np=players.find(p=>p.position===d.next_turn);document.getElementById('playHint').textContent=`${np?.username||'对方'} 思考中...`;}
     });
 
-    socket.on('new_round', () => { document.getElementById('playZone').innerHTML=''; showToast('🔄 新轮次','info'); });
+    socket.on('new_round', () => {
+        document.getElementById('playZone').innerHTML='';
+        showToast('新轮次','info');
+    });
 
     socket.on('game_over', d => {
         const me=players.find(p=>p.position===myPos);
         const t=document.getElementById('modalTitle'),s=document.getElementById('modalSub');
-        if(d.winner===me?.username){t.textContent='🎉 恭喜胜利！';t.className='modal-title win';s.textContent=`倍率 x${d.multiplier}${d.bomb_count>0?` 💥 ${d.bomb_count}个炸弹`:''}`;}
-        else{t.textContent='😢 遗憾落败';t.className='modal-title lose';s.textContent=`${d.winner} 赢得了比赛`;}
+        if(d.winner===me?.username){t.textContent='恭喜胜利！';t.className='modal-title win';s.textContent=`倍率 x${d.multiplier}${d.bomb_count>0?` ${d.bomb_count}个炸弹`:''}`;}
+        else{t.textContent='遗憾落败';t.className='modal-title lose';s.textContent=`${d.winner} 赢得了比赛`;}
         document.getElementById('resultModal').classList.add('show');
+        // 清除回合指示
+        clearTurnIndicators();
     });
 
-    socket.on('error', d => showToast('❌ '+d.message,'error'));
+    socket.on('error', d => {
+        showToast(d.message,'error');
+        // 出牌失败时恢复手牌
+        if(pendingCards){
+            for(const card of pendingCards.cards){
+                if(!myCards.includes(card))myCards.push(card);
+            }
+            myCards.sort((a,b)=>{
+                const va=RANK_VALUES[a.substring(1)]||0, vb=RANK_VALUES[b.substring(1)]||0;
+                if(va!==vb) return vb-va;
+                return ['♠','♥','♣','♦'].indexOf(a[0])-['♠','♥','♣','♦'].indexOf(b[0]);
+            });
+            pendingCards=null;
+            renderCards();
+            myTurn=true;enableBtns(true);
+        }
+    });
+
+    // === 核心函数 ===
 
     function toggleReady(){socket.emit('player_ready',{room_code:roomCode});}
     function callLandlord(call){if(!myTurn)return;socket.emit('call_landlord',{room_code:roomCode,call});myTurn=false;document.getElementById('callBar').style.display='none';}
@@ -190,7 +277,7 @@
     function updateReadyBtn(pd){
         const me=pd.find(p=>p.position===myPos);
         const btn=document.getElementById('readyBtn');
-        if(me?.ready){btn.textContent='✅ 已准备';btn.classList.add('on');}
+        if(me?.ready){btn.textContent='已准备';btn.classList.add('on');}
         else{btn.textContent='准备';btn.classList.remove('on');}
     }
 
@@ -218,37 +305,160 @@
         pd.forEach(p=>{
             if(p.position===0){document.getElementById('p1Name').textContent=p.username;document.getElementById('p1Count').textContent=p.card_count;}
             else if(p.position===1){document.getElementById('p2Name').textContent=p.username;document.getElementById('p2Count').textContent=p.card_count;}
+            updatePlayerRole(p);
         });
         const me=pd.find(p=>p.position===myPos);
         if(me)document.getElementById('myName').textContent=me.username;
     }
 
-    function showPlayed(cards,user){
-        const z=document.getElementById('playZone');z.innerHTML='';
+    function updatePlayerRole(p){
+        const roleId = p.position===0?'p1Role':p.position===1?'p2Role':null;
+        if(!roleId) return;
+        const el = document.getElementById(roleId);
+        if(p.is_landlord){el.textContent='地主';el.className='player-role landlord-role';}
+        else if(players.some(x=>x.is_landlord)){el.textContent='农民';el.className='player-role farmer-role';}
+        else{el.textContent='';el.className='player-role';}
+    }
+
+    // === 回合指示器 ===
+
+    function setTurnIndicator(pos){
+        clearTurnIndicators();
+        const avatarId = pos===0?'p1Avatar':pos===1?'p2Avatar':pos===myPos?'myAvatar':null;
+        if(avatarId) document.getElementById(avatarId).classList.add('turn-active');
+    }
+
+    function clearTurnIndicators(){
+        ['p1Avatar','p2Avatar','myAvatar'].forEach(id=>{
+            document.getElementById(id).classList.remove('turn-active');
+        });
+    }
+
+    // === 已出牌跟踪 ===
+
+    function trackPlayedCards(cards){
         cards.forEach(card=>{
-            const d=document.createElement('div');d.className='card-face card-played';
+            const rank = card.substring(1);
+            playedCardTracker[rank] = (playedCardTracker[rank]||0) + 1;
+        });
+    }
+
+    function renderCardCounter(){
+        const grid = document.getElementById('counterGrid');
+        grid.innerHTML = '';
+        RANKS_ORDER.forEach(rank=>{
+            const cell = document.createElement('div');
+            cell.className = 'counter-cell';
+            const played = playedCardTracker[rank]||0;
+            const total = rank==='小王'||rank==='大王' ? 1 : 4;
+            const remaining = total - played;
+            if(played > 0){
+                cell.classList.add(remaining===0?'played':'remaining');
+            }
+            cell.innerHTML = `<span class="cc-rank">${rank}</span><span class="cc-count">${remaining}/${total}</span>`;
+            grid.appendChild(cell);
+        });
+    }
+
+    // === 上次出牌展示 ===
+
+    function updateLastPlayArea(){
+        if(!lastPlayInfo) return;
+        const area = document.getElementById('lastPlayArea');
+        const cardsEl = document.getElementById('lastPlayCards');
+        const userEl = document.getElementById('lastPlayUser');
+        area.style.display = 'block';
+        cardsEl.innerHTML = '';
+        lastPlayInfo.cards.forEach(card=>{
+            const d = document.createElement('div');
+            d.className = 'mini-card';
+            const suit=card[0],rank=card.substring(1),red=suit==='♥'||suit==='♦';
+            d.classList.add(red?'red':'black');
+            d.innerHTML=`<span class="mc-rank">${rank}</span><span class="mc-suit">${suit}</span>`;
+            cardsEl.appendChild(d);
+        });
+        userEl.textContent = lastPlayInfo.username;
+    }
+
+    // === 玩家侧边出牌/不出显示 ===
+
+    function updatePlayerLastPlay(username, cards){
+        const p = players.find(x=>x.username===username);
+        if(!p) return;
+        const elId = p.position===0?'p1LastPlay':p.position===1?'p2LastPlay':null;
+        if(!elId) return;
+        const el = document.getElementById(elId);
+        el.innerHTML = '';
+        cards.forEach(card=>{
+            const d = document.createElement('div');
+            d.className = 'mini-card';
+            const suit=card[0],rank=card.substring(1),red=suit==='♥'||suit==='♦';
+            d.classList.add(red?'red':'black');
+            d.innerHTML=`<span class="mc-rank">${rank}</span><span class="mc-suit">${suit}</span>`;
+            el.appendChild(d);
+        });
+    }
+
+    function updatePlayerPass(username){
+        const p = players.find(x=>x.username===username);
+        if(!p) return;
+        const elId = p.position===0?'p1LastPlay':p.position===1?'p2LastPlay':null;
+        if(!elId) return;
+        document.getElementById(elId).innerHTML = '<span class="pass-text">不出</span>';
+    }
+
+    function clearPlayerLastPlays(){
+        ['p1LastPlay','p2LastPlay'].forEach(id=>{document.getElementById(id).innerHTML='';});
+    }
+
+    // === 出牌动画 ===
+
+    function showPlayed(cards, user, playType){
+        const z=document.getElementById('playZone');z.innerHTML='';
+        // 更新玩家侧边出牌
+        updatePlayerLastPlay(user, cards);
+        const isBomb = playType==='bomb'||playType==='rocket';
+        cards.forEach((card, idx)=>{
+            const d=document.createElement('div');
+            d.className='card-face card-played card-fly-in';
+            if(isBomb) d.className += ' card-bomb-effect';
+            d.style.animationDelay = (idx * 0.06) + 's';
             const suit=card[0],rank=card.substring(1),red=suit==='♥'||suit==='♦';
             d.classList.add(red?'red':'black');
             d.innerHTML=`<span class="c-rank">${rank}</span><span class="c-suit">${suit}</span>`;
             z.appendChild(d);
         });
-        document.getElementById('playHint').textContent=`${user} 出了 ${cards.length} 张牌`;
+        // 出牌类型提示
+        const typeNames = {'single':'单张','pair':'对子','triple':'三条','triple_one':'三带一',
+            'triple_two':'三带二','bomb':'炸弹','rocket':'火箭','straight':'顺子',
+            'consecutive_pairs':'连对','plane':'飞机','plane_single':'飞机带单',
+            'plane_pair':'飞机带对','four_two':'四带二'};
+        const typeName = typeNames[playType]||'';
+        document.getElementById('playHint').textContent=`${user} 出了 ${typeName||cards.length+'张牌'}`;
+        // 如果是炸弹/火箭，显示爆炸提示
+        if(isBomb){
+            showToast(`${user} ${playType==='rocket'?'王炸！':'炸弹！'} 倍率翻倍`,'warning');
+        }
     }
 
     function playCards(){
         if(!myTurn){showToast('还没轮到你！','error');return;}
         if(!selected.length){showToast('请先选择牌！','error');return;}
         const cards=selected.map(i=>myCards[i]);
+        // 保存待出牌，用于出牌失败时恢复
+        pendingCards={cards:cards, indices:[...selected]};
+        // 先从手牌中移除（乐观更新）
         for(let i of selected.sort((a,b)=>b-a))myCards.splice(i,1);
         selected=[];
+        renderCards();
         socket.emit('play_cards',{room_code:roomCode,cards});
-        renderCards();myTurn=false;enableBtns(false);
+        myTurn=false;enableBtns(false);
     }
 
     function passTurn(){
         if(!myTurn){showToast('还没轮到你！','error');return;}
         socket.emit('pass_turn',{room_code:roomCode});
-        myTurn=false;enableBtns(false);showToast('⏭️ 你选择不出','info');
+        myTurn=false;enableBtns(false);showToast('你选择不出','info');
     }
 
     function enableBtns(on){document.getElementById('playBtn').disabled=!on;document.getElementById('passBtn').disabled=!on;}
